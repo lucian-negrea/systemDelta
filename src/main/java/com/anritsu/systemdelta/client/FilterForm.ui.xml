@@ -9,29 +9,33 @@ Uncomment this for XHTML entities
              xmlns:select="urn:import:org.gwtbootstrap3.extras.select.client.ui"
              xmlns:summer="urn:import:org.gwtbootstrap3.extras.summernote.client.ui">
     
-   <g:HTMLPanel>
+    <g:HTMLPanel>
        
-    <b:Container>    
-      <b:PageHeader text="System delta" />       
-        <select:Select ui:field="mcVersion" showTick="true" title="MC Version" width="20%"></select:Select>
-        <select:Select ui:field="availability" title="Availability" multiple="true" selectedTextFormat="count>4" width="20%"></select:Select>
-        <select:Select ui:field="customer" showTick="true" title="Customer" selectedTextFormat="count>3" width="20%"></select:Select> 
-        <summer:Summernote ui:field="q7admOutput" />
-        <b:Button ui:field="filter" type="PRIMARY" enabled="false">Filter</b:Button>
-        <b:Button ui:field="generateRepository" type="PRIMARY" enabled="false" >Generate repository</b:Button>
-        <buigwt:CellTable ui:field="packageListTable" bordered="true" condensed="true" striped="true" hover="true" height="100%" width="100%"/>
-        <b:Modal title="Preparing archive of selected MC packages" closable="true" dataKeyboard="true" dataBackdrop="STATIC" fade="true" ui:field="generateModal" b:id="generateModal">
-            <b:ModalBody>
-                <b:Progress active="true" type="STRIPED" ui:field="progressSection">
-                    <b:ProgressBar ui:field="progressBar" type="INFO" percent="0" text="Calculating..." />
-                </b:Progress>
-                <g:HTML ui:field="packageGenerationMessage"></g:HTML>
-            </b:ModalBody>
-            <b:ModalFooter>
-                <b:Button type="PRIMARY" dataDismiss="MODAL" ui:field="cancelPackageGeneration">Close</b:Button>
-            </b:ModalFooter>
-        </b:Modal>
-    </b:Container>
+        <b:Container>    
+            <b:PageHeader text="System delta" />       
+            <select:Select ui:field="mcVersion" showTick="true" title="MC Version" width="25%"></select:Select>
+            <select:Select ui:field="availability" title="Availability" multiple="true" selectedTextFormat="count>4" width="25%"></select:Select>
+            <select:Select ui:field="customer" showTick="true" title="Customer" selectedTextFormat="count>3" width="25%"></select:Select> 
+            <select:Select ui:field="mcComponent" title="Package" multiple="true" liveSearch="true" selectedTextFormat="count>5" width="25%"></select:Select>
+            <summer:Summernote ui:field="q7admOutput" />
+            <b:Button ui:field="filter" type="PRIMARY" enabled="false">Filter</b:Button>
+            <b:Button ui:field="generateRepository" type="PRIMARY" enabled="false" >Generate repository</b:Button>
+            <buigwt:CellTable ui:field="packageListTable" bordered="true" condensed="true" striped="true" hover="true" height="100%" width="100%"/>
+            <b:Modal title="Preparing archive of selected MC packages" closable="true" dataKeyboard="true" dataBackdrop="STATIC" fade="true" ui:field="generateModal" b:id="generateModal">
+                <b:ModalBody>
+                    <b:Progress active="true" type="STRIPED" ui:field="totalProgressSection">
+                        <b:ProgressBar ui:field="totalProgressBar" type="INFO" percent="0" text="Calculating..." />
+                    </b:Progress>
+                    <g:HTML ui:field="packageGenerationMessage"></g:HTML>
+                    <b:Progress active="true" type="STRIPED" ui:field="packageProgressSection">
+                        <b:ProgressBar ui:field="packageProgressBar" type="SUCCESS" percent="0" text="Calculating..."/>
+                    </b:Progress>
+                </b:ModalBody>
+                <b:ModalFooter>
+                    <b:Button type="PRIMARY" dataDismiss="MODAL" ui:field="cancelPackageGeneration">Close</b:Button>
+                </b:ModalFooter>
+            </b:Modal>
+        </b:Container>
     </g:HTMLPanel>
     
 </ui:UiBinder>

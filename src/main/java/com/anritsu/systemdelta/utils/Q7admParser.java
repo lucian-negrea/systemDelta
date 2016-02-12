@@ -8,24 +8,28 @@ package com.anritsu.systemdelta.utils;
 import com.anritsu.systemdelta.shared.Filter;
 import com.anritsu.systemdelta.shared.McPackage;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.jsoup.Jsoup;
 
 /**
  *
  * @author RO100051
  */
 public class Q7admParser {
-    private Filter filter;
-    private McPackage mcPackage;
-    
-    private ArrayList<String> q7admOutputPackageList = new ArrayList<String>();
 
-    public Q7admParser(Filter filter, McPackage mcPackage) {
+    private Filter filter;
+    private HashMap<String, ArrayList<String>> q7admPackageNameVersion = new HashMap<>();
+
+    public Q7admParser(Filter filter) {
         this.filter = filter;
-        this.mcPackage = mcPackage;
+        parseFilter();
     }
-    
+
     public Q7admParser() {
-        
+
     }
 
     public Filter getFilter() {
@@ -36,25 +40,110 @@ public class Q7admParser {
         this.filter = filter;
     }
 
-    public McPackage getMcPackage() {
-        return mcPackage;
+    public boolean isMcPackageMatchCustomerFilter(McPackage p) {
+        return p.getCustomerList().contains(filter.getCustomer()) || p.getCustomerList().contains("");
+    }
+    
+    public boolean isMcPackageMatchMcComponentFilter(McPackage p) {
+        return filter.getMcComponent().contains(p.getName()) || filter.getMcComponent().isEmpty();
+    }
+    
+    public boolean isMcPackageMatchAvailabilityFilter(McPackage p) {
+        return filter.getAvailability().contains(p.getAvailability()) || filter.getAvailability().isEmpty();
     }
 
-    public void setMcPackage(McPackage mcPackage) {
-        this.mcPackage = mcPackage;
-    }
-    
-    public boolean isMcPackageMatchCustomerFilter(McPackage p, Filter f){
-        return p.getCustomerList().contains(f.getCustomer()) || p.getCustomerList().contains("");
-    }
-    
-    public boolean isMcPackageMatchAvailabilityFilter(McPackage p, Filter f){
-        return f.getAvailability().contains(p.getAvailability()) || f.getAvailability().contains("");
-    }
-    
-    public boolean isMcPackageMatchQ7admOutput(McPackage p, Filter f){
+    public boolean isMcPackageMatchQ7admOutput(McPackage p) {
+        //System.out.println("Filter: " + Jsoup.parse(filter.getQ7admOutput()).text());
+        if(Jsoup.parse(filter.getQ7admOutput()).text().equals("")) return true;
         //To be implemented!
-        return true;
+        for (Map.Entry<String, ArrayList<String>> entry : q7admPackageNameVersion.entrySet()) {
+            if(entry.getKey().startsWith("protocol-") && entry.getKey().matches(".*-" + p.getName() + "-.*")){
+                p.setQ7admOutputVersion(getQ7admLastVersion(entry.getValue()));
+                //System.out.println("Name: " + entry.getKey() + " Version: " + Arrays.toString(entry.getValue().toArray()));
+                return true;
+            }else if(entry.getKey().replace("-Linux", "").replace("-Linux64", "").equals(p.getName())){
+                p.setQ7admOutputVersion(getQ7admLastVersion(entry.getValue()));
+                //System.out.println("Name: " + entry.getKey() + " Version: " + Arrays.toString(entry.getValue().toArray()));
+                return true;
+            } else{
+                //System.out.println("Name: " + entry.getKey()  + "NOMATCH: " + p.getName() + " Version: " + Arrays.toString(entry.getValue().toArray()));
+            }
+        }
+        return false;
     }
     
+    public String getQ7admLastVersion(ArrayList<String> versions){
+        HashMap<Integer,String> newVersionsMap = new HashMap<>();
+        ArrayList<Integer> newVersionList = new ArrayList<>();
+        for(String s: versions){
+            Integer newS = Integer.parseInt(s.split("-")[0].replace(".", ""));
+            newVersionsMap.put(newS, s);
+            newVersionList.add(newS);
+        }
+        Collections.sort(newVersionList);
+        //System.out.println(Arrays.toString(newVersionList.toArray()));
+        return newVersionsMap.get(newVersionList.get(newVersionList.size()-1));
+    }
+
+    public void parseFilter() {
+        ArrayList<String> parsedPackageNameList = new ArrayList<>();
+        String lines[] = Jsoup.parse(filter.getQ7admOutput()).text().split("         ");
+        String packageVersion;
+        String packageName;
+        for (String line1 : lines) {
+            Q7admPackage q7admPack = new Q7admPackage();
+            if (line1.contains("installed as")) {
+                String[] line = line1.split(" ");
+                String packageNameAndVersion[] = line[0].split("-");
+                int arrLength = packageNameAndVersion.length;
+                if (line[0].contains("protocol-") && !(line[0].contains("protocol-servers"))) {
+                    // Protocol package
+                    packageVersion = packageNameAndVersion[arrLength - 2] + "-" + packageNameAndVersion[arrLength - 1];
+                    packageName = line[0].replace("-" + packageVersion, "");
+                } else {
+                    // Normal package
+                    packageVersion = packageNameAndVersion[arrLength - 1];
+                    packageName = line[0].replace("-" + packageVersion, "");
+                }
+                if (parsedPackageNameList.contains(packageName)) {
+                    for (Map.Entry<String, ArrayList<String>> entry : q7admPackageNameVersion.entrySet()) {
+                        if (entry.getKey().equals(packageName)) {
+                            entry.getValue().add(packageVersion);
+                        }
+                    }
+                } else {
+                    ArrayList<String> packageVersionArray = new ArrayList<>();
+                    packageVersionArray.add(packageVersion);
+                    q7admPackageNameVersion.put(packageName,packageVersionArray);
+                    parsedPackageNameList.add(packageName);
+                }
+
+            }
+        }
+       
+    }
+
+}
+
+class Q7admPackage {
+
+    private String packageName;
+    private ArrayList<String> packageVersions;
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
+    }
+
+    public ArrayList<String> getPackageVersions() {
+        return packageVersions;
+    }
+
+    public void setPackageVersions(ArrayList<String> packageVersions) {
+        this.packageVersions = packageVersions;
+    }
+
 }

@@ -17,8 +17,17 @@ public class Filter implements Serializable{
     private String mcVersion;
     private List<String> availability;
     private String customer;
+    private List<String> mcComponent;
 
     public Filter() {
+    }
+
+    public List<String> getMcComponent() {
+        return mcComponent;
+    }
+
+    public void setMcComponent(List<String> mcComponent) {
+        this.mcComponent = mcComponent;
     }
 
     public String getQ7admOutput() {

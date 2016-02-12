@@ -20,12 +20,7 @@ public class Main implements EntryPoint{
     
     @Override
     public void onModuleLoad() {
-        //GWTSystemDeltaServiceUsageExample ex = new GWTSystemDeltaServiceUsageExample();
-        //RootPanel.get().add(ex);
-        
         FilterForm filterForm = new FilterForm();
         RootPanel.get().add(filterForm);
     }
-    
-    
 }

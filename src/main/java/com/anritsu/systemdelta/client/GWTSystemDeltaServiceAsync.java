@@ -31,6 +31,8 @@ public interface GWTSystemDeltaServiceAsync {
 
     public void getPackingStatus(AsyncCallback<PackingStatus> getPackingStatusCallback);
 
+    public void getMcComponents(Filter filter, AsyncCallback<ArrayList<String>> asyncCallback);
+
 
     
     

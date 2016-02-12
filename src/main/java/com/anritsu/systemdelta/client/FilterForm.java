@@ -55,6 +55,9 @@ public class FilterForm extends Composite {
 
     @UiField
     Select customer;
+    
+    @UiField
+    Select mcComponent;
 
     @UiField
     Summernote q7admOutput;
@@ -78,7 +81,10 @@ public class FilterForm extends Composite {
     HTML packageGenerationMessage;
 
     @UiField
-    ProgressBar progressBar;
+    ProgressBar totalProgressBar;
+    
+    @UiField
+    ProgressBar packageProgressBar;
     
     private ListDataProvider<McPackage> dataProvider;
     private Filter f = new Filter();
@@ -132,6 +138,7 @@ public class FilterForm extends Composite {
                 f.setCustomer(customer.getSelectedValue());
                 f.setAvailability(availability.getAllSelectedValues());
                 f.setQ7admOutput(q7admOutput.getCode());
+                f.setMcComponent(mcComponent.getAllSelectedValues());
                 getService().getPackageList(f, getPackageListCallback);
             }
         });
@@ -147,9 +154,12 @@ public class FilterForm extends Composite {
                         downloadCount++;
                     }
                 }
-                Notify.notify(downloadCount + " packages will be downloaded!");
+                totalProgressBar.setPercent(0);
+                packageProgressBar.setPercent(0);
+                packageGenerationMessage.setHTML("Doing some math...");
                 generateModal.show();
                 getService().generateRepository(packageList, generateRepositoryCallback);
+                
                 // Call status each 5 sec
                 t = new Timer() {
                     @Override
@@ -157,7 +167,7 @@ public class FilterForm extends Composite {
                         getService().getPackingStatus(getPackingStatusCallback);                        
                     }
                 };
-                t.scheduleRepeating(10000);
+                t.scheduleRepeating(1100);
 
             }
         });
@@ -177,6 +187,13 @@ public class FilterForm extends Composite {
             @Override
             public String getValue(McPackage pack) {
                 return pack.getPackageVersion();
+            }
+        };
+        
+        TextColumn<McPackage> packageQ7admOutputVersionColumn = new TextColumn<McPackage>() {
+            @Override
+            public String getValue(McPackage pack) {
+                return pack.getQ7admOutputVersion();
             }
         };
 
@@ -205,6 +222,7 @@ public class FilterForm extends Composite {
         });
 
         packageListTable.addColumn(packageNameColumn, "Package Name");
+        packageListTable.addColumn(packageQ7admOutputVersionColumn,"Installed version");
         packageListTable.addColumn(packageVersionColumn, "Package Version");
         packageListTable.addColumn(packageAvailabilityColumn, "Availability");
         packageListTable.addColumn(selectedForDownloadColumn, "Add to repository");
@@ -251,6 +269,7 @@ public class FilterForm extends Composite {
             Notify.notify("MC " + result + " selected.");
             getService().getAvailabilities(f, getAvailabilitiesCallback);
             getService().getCustomers(f, getCustomerCallback);
+            getService().getMcComponents(f, getMcComponentCallback);
             filter.setEnabled(true);
         }
     };
@@ -307,20 +326,41 @@ public class FilterForm extends Composite {
             customer.setHeader("MasterClaw customer list could not be retrived from server!");
         }
     };
+    
+    AsyncCallback<ArrayList<String>> getMcComponentCallback = new AsyncCallback<ArrayList<String>>() {
+        @Override
+        public void onFailure(Throwable caught) {
+            availability.setEnabled(true);
+            availability.setHeader("MasterClaw availability could not be retrived from server!");
+        }
+
+        @Override
+        public void onSuccess(ArrayList<String> result) {
+            mcComponent.clear();
+            for(String s: result){
+                Option o = new Option();
+                o.setValue(s);
+                o.setText(s);
+                o.setName(s);
+                mcComponent.add(o);
+            }
+            mcComponent.refresh();
+            mcComponent.setEnabled(true);
+        }
+    };
 
     // Create an asynchronous callback to handle the result.
     final AsyncCallback<ArrayList<String>> getAvailabilitiesCallback = new AsyncCallback<ArrayList<String>>() {
 
         public void onSuccess(ArrayList<String> result) {
             availability.clear();
-            availability.add(new Option());
             for (String s : result) {
                 Option o = new Option();
                 o.setValue(s);
                 o.setName(s);
                 o.setText(s);
                 availability.add(o);
-            };
+            }
             availability.refresh();
             availability.setEnabled(true);
         }
@@ -352,16 +392,19 @@ public class FilterForm extends Composite {
                 }
             }
             
-            Notify.notify("Total: " + totalSizeToBeProcessed +
-                    "\nDownloaded: " + totalSizeDownloaded +
-                    "\nArchived: " + totalSizeArchived);
+//            Notify.notify("Total: " + totalSizeToBeProcessed +
+//                    "\nDownloaded: " + totalSizeDownloaded +
+//                    "\nArchived: " + totalSizeArchived);
             double progress = Double.parseDouble(String.valueOf((totalSizeDownloaded + totalSizeArchived)*100/(2*totalSizeToBeProcessed)));
-            progressBar.setPercent(progress);
-            progressBar.setText("Packing progress: [ " + progress + "% ]");
+            totalProgressBar.setPercent(progress);
+            totalProgressBar.setText("Total progress: [ " + progress + "% ]");
             
-            packageGenerationMessage.setHTML("Processing [" + result.getArchivedPackages().size() + "/" + result.getPackageList().size() + "]: " + result.getProcessingPackage() + 
-                    " [" + Double.parseDouble(String.valueOf((result.getPackageDownloadedSize()*100)/result.getProcessingPackage().getSize())) + " %] - [ " + 
+            packageGenerationMessage.setHTML("Processing [" + (result.getArchivedPackages().size()+1) + "/" + result.getPackageList().size() + "]: " + result.getProcessingPackage().getFileName() + 
+                    " - [ " + 
                     result.getPackageDownloadedSize()/1024 + " of " + result.getProcessingPackage().getSize()/1024 + " KB ]");
+            Double pProgress = Double.parseDouble(String.valueOf((result.getPackageDownloadedSize()*100)/result.getProcessingPackage().getSize()));
+            packageProgressBar.setPercent(pProgress);
+            packageProgressBar.setText("[ " + pProgress.toString() + "% ]");
         }
     };
 

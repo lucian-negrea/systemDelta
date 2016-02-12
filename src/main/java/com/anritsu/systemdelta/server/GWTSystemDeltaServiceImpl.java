@@ -8,11 +8,11 @@ package com.anritsu.systemdelta.server;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.anritsu.systemdelta.shared.McPackage;
 import com.anritsu.systemdelta.client.GWTSystemDeltaService;
-import com.anritsu.systemdelta.utils.Q7admParser;
-import com.anritsu.systemdelta.utils.RSSParser;
 import com.anritsu.systemdelta.shared.Filter;
+import com.anritsu.systemdelta.utils.Q7admParser;
 import com.anritsu.systemdelta.shared.PackingStatus;
 import com.anritsu.systemdelta.utils.Packing;
+import com.anritsu.systemdelta.utils.RSSParser;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,6 +34,7 @@ public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements G
         for(String s: av){
             availabilities.add(s);
         }
+        Collections.sort(availabilities);
         return availabilities;
     }
     
@@ -43,6 +44,7 @@ public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements G
         for(String s: cus){
             customers.add(s);
         }
+        Collections.sort(customers);
         return customers;
     }
 
@@ -56,9 +58,12 @@ public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements G
     public ArrayList<McPackage> getPackageList(Filter filter) {
         ArrayList<McPackage> packageList = new ArrayList<>();
         HashSet<McPackage> pack = parser.getPackageList();
+        Q7admParser q7admParser = new Q7admParser(filter);
         for(McPackage p: pack){
-            Q7admParser q7admParser = new Q7admParser();
-            if(q7admParser.isMcPackageMatchAvailabilityFilter(p, filter) && q7admParser.isMcPackageMatchCustomerFilter(p, filter)){
+            if(q7admParser.isMcPackageMatchAvailabilityFilter(p) && 
+                    q7admParser.isMcPackageMatchCustomerFilter(p) && 
+                    q7admParser.isMcPackageMatchMcComponentFilter(p) &&
+                    q7admParser.isMcPackageMatchQ7admOutput(p)){
                 packageList.add(p);
             }
         }
@@ -88,8 +93,16 @@ public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements G
     @Override
     public PackingStatus getPackingStatus() {
         return packing.getStatus();
-        
-    }
+    }    
 
-    
+    @Override
+    public ArrayList<String> getMcComponents(Filter filter) {
+        ArrayList<String> mcComponents = new ArrayList<>();
+        HashSet<McPackage> mcComp = parser.getPackageList();
+        for(McPackage p: mcComp){
+            mcComponents.add(p.getName());
+        }
+        Collections.sort(mcComponents);
+        return mcComponents;
+    }
 }

@@ -19,7 +19,7 @@ public class PackingStatus implements Serializable{
     private ArrayList<McPackage> packageList = new ArrayList<>();
     private ArrayList<String> downloadedPackages = new ArrayList<>();
     private ArrayList<String> archivedPackages = new ArrayList<>();
-    private McPackage processingPackage;
+    private McPackage processingPackage = new McPackage();
     private long packageDownloadedSize = 0;
     
     

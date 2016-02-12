@@ -27,4 +27,5 @@ public interface GWTSystemDeltaService extends RemoteService {
     public List<String> getMcVersions();
     public String setMcVersion(Filter f);
     public PackingStatus getPackingStatus();
+    public ArrayList<String> getMcComponents(Filter filter);
 }

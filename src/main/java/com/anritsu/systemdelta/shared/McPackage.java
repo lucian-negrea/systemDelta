@@ -22,7 +22,7 @@ public class McPackage implements Serializable, Comparable<McPackage>{
     private String mcVersion;
     private HashSet<String> customerList;
     private boolean addToRepository = true;
-    private String q7admOutpuVersion;
+    private String q7admOutputVersion;
     private long size;
 
     public long getSize() {
@@ -41,12 +41,12 @@ public class McPackage implements Serializable, Comparable<McPackage>{
         this.fileName = fileName;
     }
 
-    public String getQ7admOutpuVersion() {
-        return q7admOutpuVersion;
+    public String getQ7admOutputVersion() {
+        return q7admOutputVersion;
     }
 
-    public void setQ7admOutpuVersion(String q7admOutpuVersion) {
-        this.q7admOutpuVersion = q7admOutpuVersion;
+    public void setQ7admOutputVersion(String q7admOutputVersion) {
+        this.q7admOutputVersion = q7admOutputVersion;
     }
 
     public boolean isAddToRepository() {

@@ -13,15 +13,9 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.anritsu.systemdelta.shared.McPackage;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -46,7 +40,7 @@ public class RSSParser {
 
     public RSSParser(Filter filter) {
         mcVersion = filter.getMcVersion();
-        this.filePath = "C:\\Users\\ro100051\\Desktop\\RSS\\MC-" + mcVersion + "-ReleaseStatus.xlsx";
+        this.filePath = FOLDER_PATH + "MC-" + mcVersion + "-ReleaseStatus.xlsx";
         parseRSS();
     }
 
@@ -62,24 +56,6 @@ public class RSSParser {
         return availability;
     }
     
-    public long getPackageSize(McPackage p) {
-        HttpURLConnection conn = null;
-        try {
-            URL url = new URL(p.getDownloadLink());
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("HEAD");
-            conn.getInputStream();
-            return conn.getContentLengthLong();
-        } catch (MalformedURLException ex) {
-            Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
-        }finally{
-            conn.disconnect();
-        }
-        return 0;
-    }
-
     public void parseRSS() {
         try {
             FileInputStream file = new FileInputStream(new File(this.filePath));
@@ -99,7 +75,6 @@ public class RSSParser {
                     continue;
                 }
                 McPackage p = new McPackage();
-                p.setSize(getPackageSize(p));
                 p.setMcVersion(mcVersion);
                 p.setName(row.getCell(2).getStringCellValue());
                 try {
@@ -110,6 +85,7 @@ public class RSSParser {
                 } catch (NullPointerException exp) {
                     p.setDownloadLink("");
                 }
+                //p.setSize(getPackageSize(p));
                 p.setPackageVersion(row.getCell(3).getStringCellValue());
                 p.setAvailability(row.getCell(4).getStringCellValue());
                 availability.add(row.getCell(4).getStringCellValue());
@@ -121,6 +97,7 @@ public class RSSParser {
                     customers.add(customerCell[i]);
                     cusList = new ArrayList<>(Arrays.asList(customerCell));  
                 }
+                //System.out.println("Parsing line " + row.getRowNum());
 
                 p.setCustomerList(new HashSet<>(cusList));
                 packageList.add(p);

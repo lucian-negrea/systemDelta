@@ -40,13 +40,15 @@ public class Packing{
     
     public Packing(ArrayList<McPackage> packageListToBePacked) {
         this.packageListToBePacked = packageListToBePacked;
-        status = new PackingStatus();
-        status.setPackageList(packageListToBePacked);
         archiveNameFile = new File(RSSParser.FOLDER_PATH + ARCHIVE_NAME);
         try {
             out = new ZipOutputStream(new FileOutputStream(archiveNameFile));
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        for(McPackage p: packageListToBePacked){
+            p.setSize(getPackageSize(p));
         }
               
         // Update status.packageDownloadedSize
@@ -54,14 +56,44 @@ public class Packing{
         t.schedule(new TimerTask() {
             @Override
             public void run() {
+                
+                try{
                 String fileName = status.getProcessingPackage().getFileName();
                 File f = new File(RSSParser.FOLDER_PATH + fileName);
                 status.setPackageDownloadedSize(f.length());
+                }catch(Exception exp){
+                    status.setPackageDownloadedSize(0);
+                }
             }
-        }, 0, 5000);
+        }, 0, 1000);
+    }
+    
+    public long getPackageSize(McPackage p) {
+        HttpURLConnection conn = null;
+        try {
+            System.out.println("Checking download link: " + p.getDownloadLink());
+            URL url = new URL(p.getDownloadLink());
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("HEAD");
+            conn.getInputStream();
+            return conn.getContentLengthLong();
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
+        }finally{
+            try{
+                conn.disconnect();
+            }catch(Exception exp){
+                System.out.println("Error while disconnecting!");
+            }
+        }
+        return 0;
     }
 
     public String buildArchive() {
+        status = new PackingStatus();
+        status.setPackageList(packageListToBePacked);
         for (McPackage p : packageListToBePacked) {
             String fileName = p.getFileName();
             status.setProcessingPackage(p);            
