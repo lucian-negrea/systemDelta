@@ -11,8 +11,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Serializable;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -48,7 +49,7 @@ public class Packing{
         }
         
         for(McPackage p: packageListToBePacked){
-            p.setSize(getPackageSize(p));
+            p.setPackageSize(getPackageSize(p));
         }
               
         // Update status.packageDownloadedSize
@@ -60,18 +61,29 @@ public class Packing{
                 try{
                 String fileName = status.getProcessingPackage().getFileName();
                 File f = new File(RSSParser.FOLDER_PATH + fileName);
-                status.setPackageDownloadedSize(f.length());
+                status.getProcessingPackage().setPackageDownloadedSize(f.length());
                 }catch(Exception exp){
-                    status.setPackageDownloadedSize(0);
+                    status.getProcessingPackage().setPackageDownloadedSize(0);
                 }
             }
         }, 0, 1000);
     }
     
+    public void logDeadLink(McPackage p, Exception ex){
+        try (PrintWriter out = new PrintWriter(new FileWriter("systemDelta.log", true))){
+            
+            out.append(p.getMcVersion() + " " + p.getName() + " " + ex.getMessage() + "\n");
+        } catch (FileNotFoundException exp) {
+            Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, exp);
+        } catch (IOException exp) {
+            Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, exp);
+        }
+    }
+    
     public long getPackageSize(McPackage p) {
         HttpURLConnection conn = null;
         try {
-            System.out.println("Checking download link: " + p.getDownloadLink());
+            //System.out.println("Checking download link: " + p.getDownloadLink());
             URL url = new URL(p.getDownloadLink());
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("HEAD");
@@ -79,8 +91,10 @@ public class Packing{
             return conn.getContentLengthLong();
         } catch (MalformedURLException ex) {
             Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
+            logDeadLink(p, ex);
         } catch (IOException ex) {
             Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
+            logDeadLink(p, ex);
         }finally{
             try{
                 conn.disconnect();
@@ -109,7 +123,7 @@ public class Packing{
         } catch (IOException ex) {
             Logger.getLogger(Packing.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return "http://localhost/" + ARCHIVE_NAME;
+        return ARCHIVE_NAME;
     }
 
     public boolean downloadPackage(McPackage p) {

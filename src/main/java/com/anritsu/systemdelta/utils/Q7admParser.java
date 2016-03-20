@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import org.jsoup.Jsoup;
 
 /**
  *
@@ -53,15 +52,18 @@ public class Q7admParser {
     }
 
     public boolean isMcPackageMatchQ7admOutput(McPackage p) {
-        //System.out.println("Filter: " + Jsoup.parse(filter.getQ7admOutput()).text());
-        if(Jsoup.parse(filter.getQ7admOutput()).text().equals("")) return true;
+        //System.out.println("Filter: " +filter.getQ7admOutput());
+        if(filter.getQ7admOutput().equals("")) {
+            p.setQ7admOutputVersion("");
+            return true;
+        }
         //To be implemented!
         for (Map.Entry<String, ArrayList<String>> entry : q7admPackageNameVersion.entrySet()) {
             if(entry.getKey().startsWith("protocol-") && entry.getKey().matches(".*-" + p.getName() + "-.*")){
                 p.setQ7admOutputVersion(getQ7admLastVersion(entry.getValue()));
                 //System.out.println("Name: " + entry.getKey() + " Version: " + Arrays.toString(entry.getValue().toArray()));
                 return true;
-            }else if(entry.getKey().replace("-Linux", "").replace("-Linux64", "").equals(p.getName())){
+            }else if(entry.getKey().replace("-Linux64", "").replace("-Linux", "").equals(p.getName()) ){
                 p.setQ7admOutputVersion(getQ7admLastVersion(entry.getValue()));
                 //System.out.println("Name: " + entry.getKey() + " Version: " + Arrays.toString(entry.getValue().toArray()));
                 return true;
@@ -87,13 +89,12 @@ public class Q7admParser {
 
     public void parseFilter() {
         ArrayList<String> parsedPackageNameList = new ArrayList<>();
-        String lines[] = Jsoup.parse(filter.getQ7admOutput()).text().split("         ");
+        String lines[] = filter.getQ7admOutput().split("\\r?\\n");
         String packageVersion;
         String packageName;
         for (String line1 : lines) {
-            Q7admPackage q7admPack = new Q7admPackage();
             if (line1.contains("installed as")) {
-                String[] line = line1.split(" ");
+                String[] line = line1.replaceAll("^\\s+", "").split(" ");
                 String packageNameAndVersion[] = line[0].split("-");
                 int arrLength = packageNameAndVersion.length;
                 if (line[0].contains("protocol-") && !(line[0].contains("protocol-servers"))) {
@@ -125,25 +126,3 @@ public class Q7admParser {
 
 }
 
-class Q7admPackage {
-
-    private String packageName;
-    private ArrayList<String> packageVersions;
-
-    public String getPackageName() {
-        return packageName;
-    }
-
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
-    }
-
-    public ArrayList<String> getPackageVersions() {
-        return packageVersions;
-    }
-
-    public void setPackageVersions(ArrayList<String> packageVersions) {
-        this.packageVersions = packageVersions;
-    }
-
-}

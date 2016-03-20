@@ -23,7 +23,7 @@ import java.util.HashSet;
  */
 public class RSSParser {
 
-    public final static String FOLDER_PATH = "C:\\Users\\ro100051\\Desktop\\RSS\\";
+    public final static String FOLDER_PATH = "./";
     private String filePath;
     private String mcVersion;
     private HashSet<McPackage> packageList = new HashSet<>();
@@ -85,7 +85,7 @@ public class RSSParser {
                 } catch (NullPointerException exp) {
                     p.setDownloadLink("");
                 }
-                //p.setSize(getPackageSize(p));
+                
                 p.setPackageVersion(row.getCell(3).getStringCellValue());
                 p.setAvailability(row.getCell(4).getStringCellValue());
                 availability.add(row.getCell(4).getStringCellValue());

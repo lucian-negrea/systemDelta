@@ -23,14 +23,40 @@ public class McPackage implements Serializable, Comparable<McPackage>{
     private HashSet<String> customerList;
     private boolean addToRepository = true;
     private String q7admOutputVersion;
-    private long size;
-
-    public long getSize() {
-        return size;
+    private long packageSize;
+    private boolean mcPackageSuitableForDownload = true;
+    private long packageDownloadedSize = 0;
+    
+    public long getPackageDownloadedSize() {
+        return packageDownloadedSize;
     }
 
-    public void setSize(long size) {
-        this.size = size;
+    public void setPackageDownloadedSize(long packageDownloadedSize) {
+        this.packageDownloadedSize = packageDownloadedSize;
+    }
+
+    public boolean isMcPackageSuitableForDownload() {
+        Integer pVersion = Integer.parseInt(this.getPackageVersion().replace(".", "").replace("-", ""));
+        Integer pQ7admOutputVersion;
+        try {
+            pQ7admOutputVersion = Integer.parseInt(this.getQ7admOutputVersion().replace(".", "").replace("-", ""));
+        } catch (Exception exp) {
+            pQ7admOutputVersion = 0;
+        }
+
+        return pQ7admOutputVersion != 0 && pVersion > pQ7admOutputVersion;
+    }
+
+    public void setMcPackageSuitableForDownload(boolean mcPackageSuitableForDownload) {
+        this.mcPackageSuitableForDownload = mcPackageSuitableForDownload;
+    }
+
+    public long getPackageSize() {
+        return packageSize;
+    }
+
+    public void setPackageSize(long packageSize) {
+        this.packageSize = packageSize;
     }
 
     public String getFileName() {

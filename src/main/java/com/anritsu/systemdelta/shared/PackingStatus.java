@@ -20,17 +20,7 @@ public class PackingStatus implements Serializable{
     private ArrayList<String> downloadedPackages = new ArrayList<>();
     private ArrayList<String> archivedPackages = new ArrayList<>();
     private McPackage processingPackage = new McPackage();
-    private long packageDownloadedSize = 0;
     
-    
-
-    public long getPackageDownloadedSize() {
-        return packageDownloadedSize;
-    }
-
-    public void setPackageDownloadedSize(long packageDownloadedSize) {
-        this.packageDownloadedSize = packageDownloadedSize;
-    }
 
     public ArrayList<String> getDownloadedPackages() {
         return downloadedPackages;

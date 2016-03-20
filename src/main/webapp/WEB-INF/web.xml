@@ -6,16 +6,21 @@
             com.anritsu.systemdelta.server.GWTSystemDeltaServiceImpl
         </servlet-class>
     </servlet>
-    
-    
+    <servlet>
+        <servlet-name>DownloadRepoArchive</servlet-name>
+        <servlet-class>com.anritsu.systemdelta.utils.DownloadRepoArchive</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>GWTSystemDeltaService</servlet-name>
         <url-pattern>/com.anritsu.systemdelta.Main/gwtsystemdeltaservice</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>DownloadRepoArchive</servlet-name>
+        <url-pattern>/DownloadRepoArchive</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>
             30
         </session-timeout>
     </session-config>
-    
 </web-app>

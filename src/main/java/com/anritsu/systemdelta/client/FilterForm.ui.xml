@@ -17,9 +17,11 @@ Uncomment this for XHTML entities
             <select:Select ui:field="availability" title="Availability" multiple="true" selectedTextFormat="count>4" width="25%"></select:Select>
             <select:Select ui:field="customer" showTick="true" title="Customer" selectedTextFormat="count>3" width="25%"></select:Select> 
             <select:Select ui:field="mcComponent" title="Package" multiple="true" liveSearch="true" selectedTextFormat="count>5" width="25%"></select:Select>
-            <summer:Summernote ui:field="q7admOutput" />
+            <b:TextArea ui:field="q7admOutput"></b:TextArea>
             <b:Button ui:field="filter" type="PRIMARY" enabled="false">Filter</b:Button>
             <b:Button ui:field="generateRepository" type="PRIMARY" enabled="false" >Generate repository</b:Button>
+            <b:Button ui:field="downloadRepositoryArchive" type="PRIMARY" icon="STAR" iconSpin="true" iconBordered="true" enabled="false" >Download repository archive</b:Button>
+            
             <buigwt:CellTable ui:field="packageListTable" bordered="true" condensed="true" striped="true" hover="true" height="100%" width="100%"/>
             <b:Modal title="Preparing archive of selected MC packages" closable="true" dataKeyboard="true" dataBackdrop="STATIC" fade="true" ui:field="generateModal" b:id="generateModal">
                 <b:ModalBody>
@@ -27,9 +29,6 @@ Uncomment this for XHTML entities
                         <b:ProgressBar ui:field="totalProgressBar" type="INFO" percent="0" text="Calculating..." />
                     </b:Progress>
                     <g:HTML ui:field="packageGenerationMessage"></g:HTML>
-                    <b:Progress active="true" type="STRIPED" ui:field="packageProgressSection">
-                        <b:ProgressBar ui:field="packageProgressBar" type="SUCCESS" percent="0" text="Calculating..."/>
-                    </b:Progress>
                 </b:ModalBody>
                 <b:ModalFooter>
                     <b:Button type="PRIMARY" dataDismiss="MODAL" ui:field="cancelPackageGeneration">Close</b:Button>

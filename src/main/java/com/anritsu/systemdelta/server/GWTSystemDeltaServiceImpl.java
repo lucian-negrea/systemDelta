@@ -42,7 +42,9 @@ public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements G
         ArrayList<String> customers = new ArrayList<>();
         HashSet<String> cus = parser.getCustomers();
         for(String s: cus){
-            customers.add(s);
+            if(!customers.contains(s)){
+                customers.add(s);
+            }
         }
         Collections.sort(customers);
         return customers;
@@ -100,7 +102,9 @@ public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements G
         ArrayList<String> mcComponents = new ArrayList<>();
         HashSet<McPackage> mcComp = parser.getPackageList();
         for(McPackage p: mcComp){
-            mcComponents.add(p.getName());
+            if(!mcComponents.contains(p.getName())){
+                mcComponents.add(p.getName());
+            }
         }
         Collections.sort(mcComponents);
         return mcComponents;
