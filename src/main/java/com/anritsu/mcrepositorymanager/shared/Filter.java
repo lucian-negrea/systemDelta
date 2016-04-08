@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.systemdelta.shared;
+package com.anritsu.mcrepositorymanager.shared;
 
 import java.io.Serializable;
 import java.util.List;

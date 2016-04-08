@@ -3,16 +3,16 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.systemdelta.server;
+package com.anritsu.mcrepositorymanager.server;
 
+import com.anritsu.mcrepositorymanager.client.GWTMCRepositoryManagerService;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
-import com.anritsu.systemdelta.shared.McPackage;
-import com.anritsu.systemdelta.client.GWTSystemDeltaService;
-import com.anritsu.systemdelta.shared.Filter;
-import com.anritsu.systemdelta.utils.Q7admParser;
-import com.anritsu.systemdelta.shared.PackingStatus;
-import com.anritsu.systemdelta.utils.Packing;
-import com.anritsu.systemdelta.utils.RSSParser;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.utils.Q7admParser;
+import com.anritsu.mcrepositorymanager.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.utils.Packing;
+import com.anritsu.mcrepositorymanager.utils.RSSParser;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,7 +23,7 @@ import java.util.List;
  *
  * @author ro100051
  */
-public class GWTSystemDeltaServiceImpl extends RemoteServiceServlet implements GWTSystemDeltaService {
+public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet implements GWTMCRepositoryManagerService {
     private Packing packing;
     private RSSParser parser;
     //private Filter f;

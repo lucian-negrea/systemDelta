@@ -3,16 +3,16 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.systemdelta.utils;
+package com.anritsu.mcrepositorymanager.utils;
 
-import com.anritsu.systemdelta.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.Filter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Iterator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import com.anritsu.systemdelta.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;

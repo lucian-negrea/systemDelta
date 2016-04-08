@@ -9,11 +9,11 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>MasterClaw&#0153; System Delta</title>
-        <meta name='gwt:module' content='com.anritsu.systemdelta.Main=com.anritsu.systemdelta.Main'>
+        <title>MasterClaw&#0153; Repository Manager</title>
+        <meta name='gwt:module' content='com.anritsu.mcrepositorymanager.Main=com.anritsu.mcrepositorymanager.Main'>
         
     
-        <script type="text/javascript"  src="com.anritsu.systemdelta.Main/com.anritsu.systemdelta.Main.nocache.js?version=<%= new Date().getTime() %>"></script>
+        <script type="text/javascript"  src="com.anritsu.mcrepositorymanager.Main/com.anritsu.mcrepositorymanager.Main.nocache.js?version=<%= new Date().getTime() %>"></script>
 </head>
 <body>
     <iframe src="javascript:''" id="__gwt_historyFrame" style="width:0;height:0;border:0"></iframe>

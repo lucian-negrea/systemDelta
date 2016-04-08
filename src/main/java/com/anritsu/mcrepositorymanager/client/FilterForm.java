@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.systemdelta.client;
+package com.anritsu.mcrepositorymanager.client;
 
-import com.anritsu.systemdelta.shared.Filter;
-import com.anritsu.systemdelta.shared.McPackage;
-import com.anritsu.systemdelta.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 
 import com.google.gwt.cell.client.FieldUpdater;
 import com.google.gwt.cell.client.SafeHtmlCell;
@@ -458,12 +458,12 @@ public class FilterForm extends Composite {
         }
     };
 
-    public static GWTSystemDeltaServiceAsync getService() {
+    public static GWTMCRepositoryManagerServiceAsync getService() {
         // Create the client proxy. Note that although you are creating the
         // service interface proper, you cast the result to the asynchronous
         // version of the interface. The cast is always safe because the
         // generated proxy implements the asynchronous interface automatically.
 
-        return GWT.create(GWTSystemDeltaService.class);
+        return GWT.create(GWTMCRepositoryManagerService.class);
     }
 }

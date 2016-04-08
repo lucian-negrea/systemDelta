@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.systemdelta.client;
+package com.anritsu.mcrepositorymanager.client;
 
-import com.anritsu.systemdelta.shared.Filter;
-import com.anritsu.systemdelta.shared.McPackage;
-import com.anritsu.systemdelta.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.List;
  *
  * @author ro100051
  */
-public interface GWTSystemDeltaServiceAsync {
+public interface GWTMCRepositoryManagerServiceAsync {
 
     public void getPackageList(Filter filter, AsyncCallback<ArrayList<McPackage>> getPackageListCallback);
     public void generateRepository(ArrayList<McPackage> packages, AsyncCallback<String> generateRepositoryCallback);

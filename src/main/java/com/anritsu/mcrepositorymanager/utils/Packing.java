@@ -3,10 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.systemdelta.utils;
+package com.anritsu.mcrepositorymanager.utils;
 
-import com.anritsu.systemdelta.shared.McPackage;
-import com.anritsu.systemdelta.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -70,7 +70,7 @@ public class Packing{
     }
     
     public void logDeadLink(McPackage p, Exception ex){
-        try (PrintWriter out = new PrintWriter(new FileWriter("systemDelta.log", true))){
+        try (PrintWriter out = new PrintWriter(new FileWriter("MCRepositoryManager.log", true))){
             
             out.append(p.getMcVersion() + " " + p.getName() + " " + ex.getMessage() + "\n");
         } catch (FileNotFoundException exp) {

@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
     <servlet>
-        <servlet-name>GWTSystemDeltaService</servlet-name>
+        <servlet-name>GWTMCRepositoryManagerService</servlet-name>
         <servlet-class>
-            com.anritsu.systemdelta.server.GWTSystemDeltaServiceImpl
+            com.anritsu.mcrepositorymanager.server.GWTMCRepositoryManagerServiceImpl
         </servlet-class>
     </servlet>
     <servlet>
         <servlet-name>DownloadRepoArchive</servlet-name>
-        <servlet-class>com.anritsu.systemdelta.utils.DownloadRepoArchive</servlet-class>
+        <servlet-class>com.anritsu.mcrepositorymanager.utils.DownloadRepoArchive</servlet-class>
     </servlet>
     <servlet-mapping>
-        <servlet-name>GWTSystemDeltaService</servlet-name>
-        <url-pattern>/com.anritsu.systemdelta.Main/gwtsystemdeltaservice</url-pattern>
+        <servlet-name>GWTMCRepositoryManagerService</servlet-name>
+        <url-pattern>/com.anritsu.mcrepositorymanager.Main/gwtmcrepositorymanagerservice</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>DownloadRepoArchive</servlet-name>
