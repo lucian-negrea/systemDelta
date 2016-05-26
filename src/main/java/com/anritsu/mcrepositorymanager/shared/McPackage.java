@@ -10,10 +10,12 @@ import java.util.HashSet;
 import java.util.Objects;
 
 /**
- * 
+ *
  * @author RO100051
  */
-public class McPackage implements Serializable, Comparable<McPackage>{
+public class McPackage implements Serializable, Comparable<McPackage> {
+
+    // This object is build with the info collected from RSS file or changesDB
     private String name;
     private String fileName;
     private String packageVersion;
@@ -25,14 +27,49 @@ public class McPackage implements Serializable, Comparable<McPackage>{
     private String q7admOutputVersion;
     private long packageSize;
     private boolean mcPackageSuitableForDownload = true;
+    private boolean dependency;
+    private boolean dependencySolved = false;
     private long packageDownloadedSize = 0;
+    private HashSet<McPackage> dependencies;
+
+    public boolean isDependencySolved() {
+        return dependencySolved;
+    }
+
+    public void setDependencySolved(boolean dependencySolved) {
+        this.dependencySolved = dependencySolved;
+    }
     
+    public boolean isDependency() {
+        return dependency;
+    }
+
+    public void setDependency(boolean dependency) {
+        this.dependency = dependency;
+    }
+
+    public HashSet<McPackage> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(HashSet<McPackage> dependencies) {
+        this.dependencies = dependencies;
+    }
+
     public long getPackageDownloadedSize() {
         return packageDownloadedSize;
     }
 
     public void setPackageDownloadedSize(long packageDownloadedSize) {
         this.packageDownloadedSize = packageDownloadedSize;
+    }
+
+    public String getDownloadLink() {
+        return downloadLink;
+    }
+
+    public void setDownloadLink(String downloadLink) {
+        this.downloadLink = downloadLink;
     }
 
     public boolean isMcPackageSuitableForDownload() {
@@ -155,18 +192,9 @@ public class McPackage implements Serializable, Comparable<McPackage>{
         this.availability = availability;
     }
 
-    public String getDownloadLink() {
-        return downloadLink;
-    }
-
-    public void setDownloadLink(String downloadLink) {
-        this.downloadLink = downloadLink;
-    }
-
     @Override
     public int compareTo(McPackage t) {
-        return this.getName().toLowerCase().compareTo(t.getName().toLowerCase());
+        return (this.getName().toLowerCase().compareTo(t.getName().toLowerCase()));
     }
-    
-    
+
 }

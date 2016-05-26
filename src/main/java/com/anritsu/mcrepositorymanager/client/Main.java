@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.client;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.RootPanel;
 
@@ -20,7 +21,10 @@ public class Main implements EntryPoint{
     
     @Override
     public void onModuleLoad() {
-        FilterForm filterForm = new FilterForm();
-        RootPanel.get().add(filterForm);
+        
+        
+        SelectFilterForm selectFilterForm = new SelectFilterForm();
+        RootPanel.get().add(selectFilterForm);
     }
+    
 }

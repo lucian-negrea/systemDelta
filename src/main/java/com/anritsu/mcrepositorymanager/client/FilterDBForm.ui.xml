@@ -8,15 +8,17 @@ Uncomment this for XHTML entities
              xmlns:buigwt="urn:import:org.gwtbootstrap3.client.ui.gwt"
              xmlns:select="urn:import:org.gwtbootstrap3.extras.select.client.ui"
              xmlns:summer="urn:import:org.gwtbootstrap3.extras.summernote.client.ui">
-    
+    <ui:style>
+
+    </ui:style>
     <g:HTMLPanel>
        
         <b:Container>    
-            <b:PageHeader text="MasterClaw Repository Manager" />       
-            <select:Select ui:field="mcVersion" showTick="true" title="MC Version" width="25%"></select:Select>
-            <select:Select ui:field="availability" title="Availability" multiple="true" selectedTextFormat="count>4" width="25%"></select:Select>
-            <select:Select ui:field="customer" showTick="true" title="Customer" selectedTextFormat="count>3" width="25%"></select:Select> 
-            <select:Select ui:field="mcComponent" title="Package" multiple="true" liveSearch="true" selectedTextFormat="count>5" width="25%"></select:Select>
+            <b:PageHeader text="MasterClaw Repository Manager" />
+            <b:Button ui:field="changeMCVersion" type="PRIMARY" enabled="true" ></b:Button>
+            <select:Select ui:field="availabilities" title="Availabilities" multiple="true" selectedTextFormat="count>4" width="25%"></select:Select>
+            <select:Select ui:field="customers" showTick="true" title="Customers" selectedTextFormat="count>3" width="25%"></select:Select> 
+            <select:Select ui:field="packagesName" title="Package" multiple="true" liveSearch="true" selectedTextFormat="count>5" width="25%"></select:Select>
             <b:TextArea ui:field="q7admOutput"></b:TextArea>
             <b:Button ui:field="filter" type="PRIMARY" enabled="false">Filter</b:Button>
             <b:Button ui:field="generateRepository" type="PRIMARY" enabled="false" >Generate repository</b:Button>
@@ -36,5 +38,4 @@ Uncomment this for XHTML entities
             </b:Modal>
         </b:Container>
     </g:HTMLPanel>
-    
 </ui:UiBinder>

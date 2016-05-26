@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.client;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -23,17 +24,20 @@ public interface GWTMCRepositoryManagerServiceAsync {
 
     public void getMcVersions(AsyncCallback<List<String>> getMcVersionsCallback);
 
-    public void getAvailabilities(Filter filter, AsyncCallback<ArrayList<String>> getAvailabilitiesCallback);
-
-    public void getCustomers(Filter filter, AsyncCallback<ArrayList<String>> getCustomersCallback);
-
-    public void setMcVersion(Filter f, AsyncCallback<String> setMcVersionCallback);
+//    public void getAvailabilities(Filter filter, AsyncCallback<ArrayList<String>> getAvailabilitiesCallback);
+//
+//    public void getMcComponents(Filter filter, AsyncCallback<ArrayList<String>> asyncCallback);
+//    
+//    public void getCustomers(Filter filter, AsyncCallback<ArrayList<String>> getCustomersCallback);
 
     public void getPackingStatus(AsyncCallback<PackingStatus> getPackingStatusCallback);
 
-    public void getMcComponents(Filter filter, AsyncCallback<ArrayList<String>> asyncCallback);
-
-
     
+
+    public void initiateParser(Filter filter, AsyncCallback<java.lang.Boolean> asyncCallback);
+
+    public void getMCBaselineAttributes(AsyncCallback<MCBaselineAttributes> asyncCallback);
+
+   
     
 }

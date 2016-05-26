@@ -6,18 +6,24 @@
 package com.anritsu.mcrepositorymanager.server;
 
 import com.anritsu.mcrepositorymanager.client.GWTMCRepositoryManagerService;
+import com.anritsu.mcrepositorymanager.dbcontroller.MainController;
+import com.anritsu.mcrepositorymanager.packageinfoparser.PackageInfoParser;
+import com.anritsu.mcrepositorymanager.packageinfoparser.PackageInfoParserFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.Filter;
-import com.anritsu.mcrepositorymanager.utils.Q7admParser;
+import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import com.anritsu.mcrepositorymanager.utils.Packing;
-import com.anritsu.mcrepositorymanager.utils.RSSParser;
+import com.anritsu.mcrepositorymanager.packageinfoparser.RSSParser;
+import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  *
@@ -25,30 +31,29 @@ import java.util.List;
  */
 public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet implements GWTMCRepositoryManagerService {
     private Packing packing;
-    private RSSParser parser;
-    //private Filter f;
+    private PackageInfoParser parser;
        
-    public ArrayList<String> getAvailabilities(Filter f/*Parameter not used*/){
-        ArrayList<String> availabilities = new ArrayList<>();
-        HashSet<String> av = parser.getAvailability();
-        for(String s: av){
-            availabilities.add(s);
-        }
-        Collections.sort(availabilities);
-        return availabilities;
-    }
-    
-    public ArrayList<String> getCustomers(Filter f /*Parameter not used*/) {
-        ArrayList<String> customers = new ArrayList<>();
-        HashSet<String> cus = parser.getCustomers();
-        for(String s: cus){
-            if(!customers.contains(s)){
-                customers.add(s);
-            }
-        }
-        Collections.sort(customers);
-        return customers;
-    }
+//    public ArrayList<String> getAvailabilities(Filter f/*Parameter not used*/){
+//        ArrayList<String> availabilities = new ArrayList<>();
+//        HashSet<String> av = parser.getAvailability();
+//        for(String s: av){
+//            availabilities.add(s);
+//        }
+//        Collections.sort(availabilities);
+//        return availabilities;
+//    }
+//    
+//    public ArrayList<String> getCustomers(Filter f /*Parameter not used*/) {
+//        ArrayList<String> customers = new ArrayList<>();
+//        HashSet<String> cus = parser.getCustomers();
+//        for(String s: cus){
+//            if(!customers.contains(s)){
+//                customers.add(s);
+//            }
+//        }
+//        Collections.sort(customers);
+//        return customers;
+//    }
 
     @Override
     public String generateRepository(ArrayList<McPackage> packages) {
@@ -59,15 +64,9 @@ public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet impl
     @Override
     public ArrayList<McPackage> getPackageList(Filter filter) {
         ArrayList<McPackage> packageList = new ArrayList<>();
-        HashSet<McPackage> pack = parser.getPackageList();
-        Q7admParser q7admParser = new Q7admParser(filter);
+        HashSet<McPackage> pack = parser.getPackageList(filter);
         for(McPackage p: pack){
-            if(q7admParser.isMcPackageMatchAvailabilityFilter(p) && 
-                    q7admParser.isMcPackageMatchCustomerFilter(p) && 
-                    q7admParser.isMcPackageMatchMcComponentFilter(p) &&
-                    q7admParser.isMcPackageMatchQ7admOutput(p)){
-                packageList.add(p);
-            }
+            packageList.add(p);
         }
         Collections.sort(packageList);
         return packageList;
@@ -75,38 +74,58 @@ public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet impl
 
     @Override
     public List<String> getMcVersions() {
-        List<String> mcVersions = new ArrayList<>();
+        SortedSet<String> mcVersions = new TreeSet<>();
+        
+        // Get MC version according to files RSS available files
         File folder = new File(RSSParser.FOLDER_PATH);
         for(File f: folder.listFiles()){
             if(f.isFile() && f.getName().matches("MC-(.*)-ReleaseStatus.xlsx")){
                 mcVersions.add(f.getName().replace("MC-", "").replace("-ReleaseStatus.xlsx", ""));
             }
         }
+        
+        // Get MC versions from DB
+        mcVersions.addAll(MainController.getInstance().getMCVersions());        
         System.out.println(mcVersions.size() + " versions detected!");
-        return mcVersions;
+        return new ArrayList<>(mcVersions);
     }
-
-    @Override
-    public String setMcVersion(Filter f) {
-        parser = new RSSParser(f);
-        return parser.getMcVersion();
-    }    
 
     @Override
     public PackingStatus getPackingStatus() {
         return packing.getStatus();
     }    
 
+//    @Override
+//    public ArrayList<String> getMcComponents(Filter filter) {
+//        ArrayList<String> mcComponents = new ArrayList<>();
+//        HashSet<McPackage> mcComp = parser.getPackageList();
+//        for(McPackage p: mcComp){
+//            if(!mcComponents.contains(p.getName())){
+//                mcComponents.add(p.getName());
+//            }
+//        }
+//        Collections.sort(mcComponents);
+//        return mcComponents;
+//    }
+
     @Override
-    public ArrayList<String> getMcComponents(Filter filter) {
-        ArrayList<String> mcComponents = new ArrayList<>();
-        HashSet<McPackage> mcComp = parser.getPackageList();
-        for(McPackage p: mcComp){
-            if(!mcComponents.contains(p.getName())){
-                mcComponents.add(p.getName());
-            }
-        }
-        Collections.sort(mcComponents);
-        return mcComponents;
+    public boolean initiateParser(Filter filter) {
+        parser = PackageInfoParserFactory.getPackageInfoParser(filter);
+        if(parser!=null) return true;
+        else return false;
     }
+
+    @Override
+    public MCBaselineAttributes getMCBaselineAttributes() {        
+        MCBaselineAttributes mcBaselinesAttributes = new MCBaselineAttributes();
+        mcBaselinesAttributes.setMcVersion(parser.getMCVersion());
+        mcBaselinesAttributes.setAvailabilities(parser.getAvailability());
+        mcBaselinesAttributes.setCustomers(parser.getCustomers());
+        mcBaselinesAttributes.setPackageNames(parser.getPackageNameList());
+        return mcBaselinesAttributes;
+    }
+
+    
+
+   
 }

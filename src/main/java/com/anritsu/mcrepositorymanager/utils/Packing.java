@@ -5,6 +5,7 @@
  */
 package com.anritsu.mcrepositorymanager.utils;
 
+import com.anritsu.mcrepositorymanager.packageinfoparser.RSSParser;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import java.io.File;

@@ -1,0 +1,220 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.packageinfoparser;
+
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcAvailabilities;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcCustomers;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcDependencies;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcItemsReleased;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcReleases;
+import com.anritsu.mcrepositorymanager.dbcontroller.MainController;
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ *
+ * @author RO100051
+ */
+public class DBParser implements PackageInfoParser {
+
+    private String mcVersion;
+    private static final Logger LOGGER = Logger.getLogger(DBParser.class.getName());
+
+    public DBParser(Filter filter) {
+        mcVersion = filter.getMcVersion();
+    }
+
+    @Override
+    public HashSet<McPackage> getPackageList(Filter filter) {
+        HashSet<McPackage> mcPackages = new HashSet<>();
+        ApplyFilter applyFilter = new ApplyFilter(filter);
+        HashSet<DBMcReleases> mcReleases = MainController.getInstance().getPackages();
+        if (!mcReleases.isEmpty()) {
+            for (DBMcReleases dbmcr : mcReleases) {
+                McPackage mcp = getMcPackageFromDBMcReleases(dbmcr);
+                if ((applyFilter.isMcPackageMatchAvailabilityFilter(mcp)
+                        && applyFilter.isMcPackageMatchCustomerFilter(mcp)
+                        && applyFilter.isMcPackageMatchMcComponentFilter(mcp)
+                        && applyFilter.isMcPackageMatchQ7admOutput(mcp))) {
+                    mcPackages.add(mcp);
+                }
+
+                LOGGER.log(Level.INFO, "Adding: {0}-{1}, {2}, {3}, {4}", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
+
+                // Remove older version for specific package name/availability
+                mcPackages = keepLatestVersion(mcp, mcPackages);
+            }
+            LOGGER.log(Level.INFO, "mcPackages size before dependencies: " + mcPackages.size());
+            mcPackages = solveDependencies(mcPackages);
+            LOGGER.log(Level.INFO, "mcPackages size after dependencies: " + mcPackages.size());
+        }
+        LOGGER.log(Level.INFO, "mcPackages size: " + mcPackages.size());
+        return mcPackages;
+    }
+
+    @Override
+    public HashSet<String> getCustomers() {
+        return new HashSet<>(MainController.getInstance().getCustomers());
+    }
+
+    @Override
+    public HashSet<String> getAvailability() {
+        return MainController.getInstance().getAvailabilities();
+    }
+
+    public String getMcVersion() {
+        return mcVersion;
+    }
+
+    @Override
+    public HashSet<String> getPackageNameList() {
+        return new HashSet(MainController.getInstance().getPackagesName());
+    }
+
+    @Override
+    public String getMCVersion() {
+        return this.mcVersion;
+    }
+
+    public HashSet<McPackage> keepLatestVersion(McPackage mcp, HashSet<McPackage> mcPackages) {
+        HashSet<McPackage> mcPackagesLatestVersion = new HashSet<>(mcPackages);
+        for (McPackage m : mcPackages) {
+            String mcpVersion = mcp.getPackageVersion().replaceAll("\\.", "").replaceAll("-", "").replaceAll("_", "");
+            String mVersion = m.getPackageVersion().replaceAll("\\.", "").replaceAll("-", "").replaceAll("_", "");
+            if (m.getName().equalsIgnoreCase(mcp.getName())
+                    && m.getAvailability().equalsIgnoreCase(mcp.getAvailability())
+                    && Integer.parseInt(mcpVersion) < Integer.parseInt(mVersion)) {
+                mcPackagesLatestVersion.remove(mcp);
+                LOGGER.log(Level.INFO, "Removing: {0}-{1}, {2}, {3}, {4}", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
+            } else if (m.getName().equalsIgnoreCase(mcp.getName())
+                    && m.getAvailability().equalsIgnoreCase(mcp.getAvailability())
+                    && Integer.parseInt(mcpVersion) > Integer.parseInt(mVersion)) {
+                mcPackagesLatestVersion.remove(m);
+                LOGGER.log(Level.INFO, "Removing: {0}-{1}, {2}, {3}, {4}", new Object[]{m.getName(), m.getPackageVersion(), m.getMcVersion(), m.getAvailability(), m.getCustomerList()});
+            }
+        }
+        return mcPackagesLatestVersion;
+    }
+
+    private HashSet<McPackage> getDependencies(McPackage mcPackage) {
+        HashSet<McPackage> mcPackageDependencies = new HashSet<>();
+        LOGGER.log(Level.INFO, "Getting releases");
+        DBMcReleases dbmcr = MainController.getInstance().getDBMcReleasesByNameVersion(mcPackage.getName(), mcPackage.getPackageVersion());
+        LOGGER.log(Level.INFO, "Release " + dbmcr.getComponentName());
+        for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
+            if (mcPackage.getMcVersion().equalsIgnoreCase(dbmca.getMcVersion())) {
+                List<DBMcDependencies> dbMcDependencies = new ArrayList<>(dbmca.getDBMcDependenciesCollection());
+                for (DBMcDependencies dbmcd : dbMcDependencies) {
+                    McPackage mcpd = new McPackage();
+                    String dbmcdName = dbmcd.getRequiredComponent();
+                    String dbmcdVersion = dbmcd.getRequiredVersion();
+                    mcpd.setName(dbmcdName);
+                    mcpd.setPackageVersion(dbmcdVersion);
+                    boolean greater = false;
+                    if (dbmcdVersion.contains("+")) {
+                        greater = true;
+                    }
+                    mcpd = getLatestMcPackage(mcpd, greater);
+                    mcpd.setDependency(true);
+                    if (mcpd.getName() == null) {
+                        mcpd.setName(dbmcdName);
+                        mcpd.setPackageVersion(dbmcdVersion);                       
+                    }
+                     mcPackageDependencies.add(mcpd);
+                }
+            }
+        }
+        LOGGER.log(Level.INFO, "Dependencies for " + mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " are: ");
+        for (McPackage p : mcPackageDependencies) {
+            LOGGER.log(Level.INFO, p.getName() + "-" + p.getPackageVersion());
+        }
+        return mcPackageDependencies;
+    }
+
+    private McPackage getMcPackageFromDBMcReleases(DBMcReleases dbmcr) {
+        McPackage mcp = new McPackage();
+        mcp.setName(dbmcr.getComponentName());
+        mcp.setPackageVersion(dbmcr.getComponentVersion());
+        DBMcItemsReleased releasedItem = dbmcr.getDBMcItemsReleasedCollection().iterator().next();
+        mcp.setDownloadLink(releasedItem.getItemLocation());
+        String dowloadLink[] = mcp.getDownloadLink().split("/");
+        mcp.setFileName(dowloadLink[dowloadLink.length - 1]);
+
+        // Set availability
+        for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
+            if (dbmca.getMcVersion().equals(mcVersion)) {
+                mcp.setMcVersion(mcVersion);
+                mcp.setAvailability(dbmca.getAvailability());
+
+                // Set customers
+                HashSet<String> customers = new HashSet<>();
+                customers.add(" ");
+                for (DBMcCustomers dbmcc : dbmca.getDBMcCustomersCollection()) {
+                    customers.add(dbmcc.getCustomerName());
+                }
+                mcp.setCustomerList(customers);
+                LOGGER.log(Level.INFO, "Adding : {0}-{1}, {2}, {3}, {4} to mcPackages list!", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
+            }
+        }
+        return mcp;
+    }
+
+    private McPackage getLatestMcPackage(McPackage mcPackage, boolean greater) {
+        List<DBMcReleases> dbMcReleases = MainController.getInstance().getDBMcReleasesByPackageName(mcPackage.getName());
+        HashMap<Integer, DBMcReleases> dbMcReleasesMap = new HashMap<>();
+        McPackage m = new McPackage();
+
+        for (DBMcReleases dbmcr : dbMcReleases) {
+            String dbmcrVersion = dbmcr.getComponentVersion().replaceAll("\\.", "").replaceAll("-", "");
+            String mcPackageVersion = mcPackage.getPackageVersion().replaceAll("\\.", "").replaceAll("-", "");
+            dbMcReleasesMap.put(Integer.parseInt(dbmcrVersion), dbmcr);
+            if (dbmcrVersion.equalsIgnoreCase(mcPackageVersion) && !greater) {
+                m = getMcPackageFromDBMcReleases(dbmcr);
+            } else if (greater) {
+                Map.Entry<Integer, DBMcReleases> maxEntry = null;
+                for (Map.Entry<Integer, DBMcReleases> entry : dbMcReleasesMap.entrySet()) {
+                    if (maxEntry == null || entry.getKey().compareTo(maxEntry.getKey()) > 0) {
+                        maxEntry = entry;
+                        m = getMcPackageFromDBMcReleases(maxEntry.getValue());
+                    }
+                }
+            }
+        }
+        LOGGER.log(Level.INFO, "Greater=" + greater + ". For " + mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " -> " + m.getName() + "-" + m.getPackageVersion());
+        return m;
+    }
+
+    public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages) {
+        HashSet<McPackage> mcPackgesWithDependencies = new HashSet<>(mcPackages);
+        for (McPackage p : mcPackages) {
+            if (!p.isDependencySolved()) {
+                mcPackgesWithDependencies.remove(p);
+                LOGGER.log(Level.INFO, "Solving dependencies for: {0}-{1}!", new Object[]{p.getName(), p.getPackageVersion()});
+                HashSet<McPackage> dependencies = getDependencies(p);
+                LOGGER.log(Level.INFO, p.getName() + " have " + dependencies.size() + " dependencies!");
+                p.setDependencies(dependencies);
+                p.setDependencySolved(true);
+                LOGGER.log(Level.INFO, "Dependency solved for: {0}-{1}!", new Object[]{p.getName(), p.getPackageVersion()});
+                mcPackgesWithDependencies.add(p);
+
+                for (McPackage pDependency : dependencies) {
+                    mcPackgesWithDependencies.add(pDependency);
+                    mcPackgesWithDependencies = solveDependencies(mcPackgesWithDependencies);
+                }
+            }
+
+        }
+        return mcPackgesWithDependencies;
+    }
+}

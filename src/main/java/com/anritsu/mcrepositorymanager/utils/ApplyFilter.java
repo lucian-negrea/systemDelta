@@ -8,7 +8,6 @@ package com.anritsu.mcrepositorymanager.utils;
 import com.anritsu.mcrepositorymanager.shared.Filter;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,17 +16,17 @@ import java.util.Map;
  *
  * @author RO100051
  */
-public class Q7admParser {
+public class ApplyFilter {
 
     private Filter filter;
     private HashMap<String, ArrayList<String>> q7admPackageNameVersion = new HashMap<>();
 
-    public Q7admParser(Filter filter) {
+    public ApplyFilter(Filter filter) {
         this.filter = filter;
         parseFilter();
     }
 
-    public Q7admParser() {
+    public ApplyFilter() {
 
     }
 
@@ -40,7 +39,7 @@ public class Q7admParser {
     }
 
     public boolean isMcPackageMatchCustomerFilter(McPackage p) {
-        return p.getCustomerList().contains(filter.getCustomer()) || p.getCustomerList().contains("");
+        return p.getCustomerList().contains(filter.getCustomer()) || p.getCustomerList().contains("") || p.getCustomerList().contains("All");
     }
     
     public boolean isMcPackageMatchMcComponentFilter(McPackage p) {

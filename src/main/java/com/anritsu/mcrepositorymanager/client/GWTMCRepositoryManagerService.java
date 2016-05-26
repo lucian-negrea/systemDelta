@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.client;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import com.google.gwt.user.client.rpc.RemoteService;
@@ -19,13 +20,20 @@ import java.util.List;
  */
 @RemoteServiceRelativePath("gwtmcrepositorymanagerservice")
 public interface GWTMCRepositoryManagerService extends RemoteService {
-
-    public ArrayList<String> getAvailabilities(Filter filter);
-    public ArrayList<String> getCustomers(Filter filter);
+    
+    public boolean initiateParser(Filter filter);
+    public MCBaselineAttributes getMCBaselineAttributes();
+        
+//    public ArrayList<String> getAvailabilities(Filter filter);
+//    public ArrayList<String> getCustomers(Filter filter);
+//    public ArrayList<String> getMcComponents(Filter filter);
+//    
+    
     public ArrayList<McPackage> getPackageList(Filter filter);
     public String generateRepository(ArrayList<McPackage> packages);
     public List<String> getMcVersions();
-    public String setMcVersion(Filter f);
     public PackingStatus getPackingStatus();
-    public ArrayList<String> getMcComponents(Filter filter);
+    
+    
+    
 }

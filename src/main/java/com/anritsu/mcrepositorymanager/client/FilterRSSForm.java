@@ -6,14 +6,13 @@
 package com.anritsu.mcrepositorymanager.client;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 
 import com.google.gwt.cell.client.FieldUpdater;
 import com.google.gwt.cell.client.SafeHtmlCell;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.ChangeEvent;
-import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.safehtml.shared.SafeHtml;
@@ -28,13 +27,13 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.view.client.ListDataProvider;
 import java.util.ArrayList;
 import java.util.List;
 import org.gwtbootstrap3.client.shared.event.ModalHideEvent;
 import org.gwtbootstrap3.client.shared.event.ModalHideHandler;
-import org.gwtbootstrap3.client.ui.Badge;
 import org.gwtbootstrap3.client.ui.Button;
 
 import org.gwtbootstrap3.client.ui.Modal;
@@ -46,24 +45,23 @@ import org.gwtbootstrap3.extras.notify.client.ui.Notify;
 import org.gwtbootstrap3.extras.select.client.ui.Option;
 import org.gwtbootstrap3.extras.select.client.ui.Select;
 
-
 /**
  *
  * @author ro100051
  */
-public class FilterForm extends Composite {
+public class FilterRSSForm extends Composite {
 
     @UiField
-    Select mcVersion;
+    Button changeMCVersion;
 
     @UiField
-    Select availability;
+    Select availabilities;
 
     @UiField
-    Select customer;
+    Select customers;
 
     @UiField
-    Select mcComponent;
+    Select packagesName;
 
     @UiField
     TextArea q7admOutput;
@@ -91,31 +89,45 @@ public class FilterForm extends Composite {
 
     @UiField
     ProgressBar totalProgressBar;
-    
-    
+
     private ListDataProvider<McPackage> dataProvider;
     private Filter f = new Filter();
     private Timer t;
+    private String mcVersion;
 
     private static FilterFormUiBinder uiBinder = GWT.create(FilterFormUiBinder.class);
 
-    interface FilterFormUiBinder extends UiBinder<Widget, FilterForm> {
+    interface FilterFormUiBinder extends UiBinder<Widget, FilterRSSForm> {
     }
 
-    public FilterForm() {
+    public FilterRSSForm(String mcVersion) {
+        this.mcVersion = mcVersion;
         initWidget(uiBinder.createAndBindUi(this));
-        getService().getMcVersions(getMcVersionsCallback);
+        
+        f.setMcVersion(mcVersion);
+        
+        // Initiate PackageInfoParser with selected MC version
+        getService().initiateParser(f, initiateParserCallback);
+        
+        // Get mcBaselineAttributes
+        getService().getMCBaselineAttributes(getMCBaselinesAttributesCallback);
+
+        changeMCVersion.setWidth("25%");
+        changeMCVersion.setText("MasterClaw " + mcVersion);
+        filter.setEnabled(true);
+
         downloadRepositoryArchive.setVisible(false);
 
         q7admOutput.setHeight("200px");
         q7admOutput.setPlaceholder("Please paste q7adm output");
 
-        mcVersion.addChangeHandler(new ChangeHandler() {
+        // Change MC version
+        changeMCVersion.addClickHandler(new ClickHandler() {
             @Override
-            public void onChange(ChangeEvent event) {
-                f.setMcVersion(mcVersion.getSelectedValue());
-                getService().setMcVersion(f, setMcVersionCallback);
-
+            public void onClick(ClickEvent event) {
+                RootPanel.get().clear();
+                SelectFilterForm selectFilterForm = new SelectFilterForm();
+                RootPanel.get().add(selectFilterForm);
             }
         });
 
@@ -142,11 +154,10 @@ public class FilterForm extends Composite {
             public void onClick(ClickEvent event) {
                 downloadRepositoryArchive.setVisible(false);
                 downloadRepositoryArchive.setActive(false);
-                f.setMcVersion(mcVersion.getSelectedValue());
-                f.setCustomer(customer.getSelectedValue());
-                f.setAvailability(availability.getAllSelectedValues());
+                f.setCustomer(customers.getSelectedValue());
+                f.setAvailability(availabilities.getAllSelectedValues());
                 f.setQ7admOutput(q7admOutput.getText());
-                f.setMcComponent(mcComponent.getAllSelectedValues());
+                f.setMcComponent(packagesName.getAllSelectedValues());
                 getService().getPackageList(f, getPackageListCallback);
             }
         });
@@ -200,14 +211,8 @@ public class FilterForm extends Composite {
             }
         };
 
-//        TextColumn<McPackage> packageVersionColumn = new TextColumn<McPackage>() {
-//            @Override
-//            public String getValue(McPackage pack) {
-//                return pack.getPackageVersion();
-//            }
-//        };
-        Column<McPackage,SafeHtml> packageVersionColumn = new Column<McPackage,SafeHtml>(
-            new SafeHtmlCell()){
+        Column<McPackage, SafeHtml> packageVersionColumn = new Column<McPackage, SafeHtml>(
+                new SafeHtmlCell()) {
             @Override
             public SafeHtml getValue(McPackage object) {
                 SafeHtmlBuilder sb = new SafeHtmlBuilder();
@@ -215,10 +220,9 @@ public class FilterForm extends Composite {
                 sb.appendEscaped(object.getPackageVersion());
                 sb.appendHtmlConstant("</a>");
                 return sb.toSafeHtml();
-                
+
             }
-            };
-        
+        };
 
         TextColumn<McPackage> packageQ7admOutputVersionColumn = new TextColumn<McPackage>() {
             @Override
@@ -279,47 +283,70 @@ public class FilterForm extends Composite {
         packageListTable.setRowStyles(new RowStyles<McPackage>() {
             @Override
             public String getStyleNames(McPackage p, int rowIndex) {
-
                 return (p.isMcPackageSuitableForDownload()) ? "info" : "";
-
             }
         });
     }
-
-    // Get available versions from the server
-    AsyncCallback<List<String>> getMcVersionsCallback = new AsyncCallback<List<String>>() {
+    
+    // Initiate parser callback
+    AsyncCallback<Boolean> initiateParserCallback = new AsyncCallback<Boolean>() {
         @Override
         public void onFailure(Throwable caught) {
-            Notify.notify("MC version list could not be generated!\n" + caught.getMessage());
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
         @Override
-        public void onSuccess(List<String> result) {
-            for (String s : result) {
+        public void onSuccess(Boolean result) {
+            if (result) {
+                getService().getMCBaselineAttributes(getMCBaselinesAttributesCallback);
+            }
+        }
+    };
+    
+    // Get mcBaselineAttributes
+    AsyncCallback<MCBaselineAttributes> getMCBaselinesAttributesCallback = new AsyncCallback<MCBaselineAttributes>() {
+        @Override
+        public void onFailure(Throwable caught) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void onSuccess(MCBaselineAttributes result) {
+            // Populate availabilities
+            availabilities.clear();
+            for (String s : result.getAvailabilities()) {
                 Option o = new Option();
                 o.setValue(s);
                 o.setName(s);
                 o.setText(s);
-                mcVersion.add(o);
+                availabilities.add(o);
             }
-            mcVersion.refresh();
-        }
-    };
-
-    // Setting MC version to filter for
-    AsyncCallback<String> setMcVersionCallback = new AsyncCallback<String>() {
-        @Override
-        public void onFailure(Throwable caught) {
-            Notify.notify("Ups! there were some errors on server!\n" + caught.getMessage());
-        }
-
-        @Override
-        public void onSuccess(String result) {
-            Notify.notify("MC " + result + " selected.");
-            getService().getAvailabilities(f, getAvailabilitiesCallback);
-            getService().getCustomers(f, getCustomerCallback);
-            getService().getMcComponents(f, getMcComponentCallback);
-            filter.setEnabled(true);
+            availabilities.refresh();
+            availabilities.setEnabled(true);
+            
+            // Populate customers
+            customers.clear();
+            for (String s : result.getCustomers()) {
+                Option o = new Option();
+                o.setValue(s);
+                o.setName(s);
+                o.setText(s);
+                customers.add(o);
+            };
+            customers.refresh();
+            customers.setEnabled(true);
+            
+            // Populate package name
+            packagesName.clear();
+            for (String s : result.getPackageNames()) {
+                Option o = new Option();
+                o.setValue(s);
+                o.setText(s);
+                o.setName(s);
+                packagesName.add(o);
+            }
+            packagesName.refresh();
+            packagesName.setEnabled(true);
         }
     };
 
@@ -341,7 +368,7 @@ public class FilterForm extends Composite {
         }
     };
 
-    // Get the list of MC packages. Fileter to be implemented!
+    // Get the list of MC packages.
     AsyncCallback<ArrayList<McPackage>> getPackageListCallback = new AsyncCallback<ArrayList<McPackage>>() {
         @Override
         public void onFailure(Throwable caught) {
@@ -351,78 +378,13 @@ public class FilterForm extends Composite {
         @Override
         public void onSuccess(ArrayList<McPackage> result) {
             Notify.notify(result.size() + " packages retrived!");
-            
+
             populatePackageListTable(result);
             generateRepository.setEnabled(true);
         }
     };
 
-    // Create an asynchronous callback to handle the result.
-    final AsyncCallback<ArrayList<String>> getCustomerCallback = new AsyncCallback<ArrayList<String>>() {
-
-        public void onSuccess(ArrayList<String> result) {
-            customer.clear();
-            for (String s : result) {
-                Option o = new Option();
-                o.setValue(s);
-                o.setName(s);
-                o.setText(s);
-                customer.add(o);
-            };
-            customer.refresh();
-            customer.setEnabled(true);
-
-        }
-
-        public void onFailure(Throwable caught) {
-            customer.setEnabled(true);
-            customer.setHeader("MasterClaw customer list could not be retrived from server!");
-        }
-    };
-
-    AsyncCallback<ArrayList<String>> getMcComponentCallback = new AsyncCallback<ArrayList<String>>() {
-        @Override
-        public void onFailure(Throwable caught) {
-            availability.setEnabled(true);
-            availability.setHeader("MasterClaw availability could not be retrived from server!");
-        }
-
-        @Override
-        public void onSuccess(ArrayList<String> result) {
-            mcComponent.clear();
-            for (String s : result) {
-                Option o = new Option();
-                o.setValue(s);
-                o.setText(s);
-                o.setName(s);
-                mcComponent.add(o);
-            }
-            mcComponent.refresh();
-            mcComponent.setEnabled(true);
-        }
-    };
-
-    // Create an asynchronous callback to handle the result.
-    final AsyncCallback<ArrayList<String>> getAvailabilitiesCallback = new AsyncCallback<ArrayList<String>>() {
-
-        public void onSuccess(ArrayList<String> result) {
-            availability.clear();
-            for (String s : result) {
-                Option o = new Option();
-                o.setValue(s);
-                o.setName(s);
-                o.setText(s);
-                availability.add(o);
-            }
-            availability.refresh();
-            availability.setEnabled(true);
-        }
-
-        public void onFailure(Throwable caught) {
-            availability.setEnabled(true);
-            availability.setHeader("MasterClaw availability could not be retrived from server!");
-        }
-    };
+ 
 
     AsyncCallback<PackingStatus> getPackingStatusCallback = new AsyncCallback<PackingStatus>() {
         @Override

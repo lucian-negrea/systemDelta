@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.anritsu.mcrepositorymanager.utils;
+package com.anritsu.mcrepositorymanager.packageinfoparser;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
 import java.io.File;
@@ -13,45 +13,63 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author RO100051
  */
-public class RSSParser {
-
+public class RSSParser implements PackageInfoParser{
+    
+    private static final Logger LOGGER = Logger.getLogger(RSSParser.class.getName());
     public final static String FOLDER_PATH = "./";
     private String filePath;
     private String mcVersion;
     private HashSet<McPackage> packageList = new HashSet<>();
     private HashSet<String> customers = new HashSet<>();
     private HashSet<String> availability = new HashSet<>();
+    
+    public RSSParser(Filter filter) {
+        mcVersion = filter.getMcVersion();
+        this.filePath = FOLDER_PATH + "MC-" + mcVersion + "-ReleaseStatus.xlsx";
+        LOGGER.log(Level.INFO, "Path: " + filePath);
+        parseRSS();
+    }
 
-    public HashSet<McPackage> getPackageList() {
-        return packageList;
+    @Override
+    public HashSet<McPackage> getPackageList(Filter filter) {
+        ApplyFilter applyFilter = new ApplyFilter(filter);
+        HashSet<McPackage> filteredPackageList = new HashSet<>();
+        for(McPackage p: packageList){
+            if((applyFilter.isMcPackageMatchAvailabilityFilter(p) && 
+                    applyFilter.isMcPackageMatchCustomerFilter(p) && 
+                    applyFilter.isMcPackageMatchMcComponentFilter(p) &&
+                    applyFilter.isMcPackageMatchQ7admOutput(p))){
+                filteredPackageList.add(p);
+            }
+        }
+        return filteredPackageList;
     }
 
     public void setPackageList(HashSet<McPackage> packageList) {
         this.packageList = packageList;
     }
 
-    public RSSParser(Filter filter) {
-        mcVersion = filter.getMcVersion();
-        this.filePath = FOLDER_PATH + "MC-" + mcVersion + "-ReleaseStatus.xlsx";
-        parseRSS();
-    }
-
     public String getMcVersion() {
         return mcVersion;
     }
 
+    @Override
     public HashSet<String> getCustomers() {
         return customers;
     }
 
+    @Override
     public HashSet<String> getAvailability() {
         return availability;
     }
@@ -98,6 +116,7 @@ public class RSSParser {
                     cusList = new ArrayList<>(Arrays.asList(customerCell));  
                 }
                 //System.out.println("Parsing line " + row.getRowNum());
+                LOGGER.log(Level.INFO, "Parsing " + this.filePath + "/"+ row.getRowNum());
 
                 p.setCustomerList(new HashSet<>(cusList));
                 packageList.add(p);
@@ -107,4 +126,20 @@ public class RSSParser {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public HashSet<String> getPackageNameList() {
+        HashSet<String> packagesNameList = new HashSet<>();
+        for(McPackage p: packageList){
+            packagesNameList.add(p.getName());
+        }
+        return packagesNameList;
+    }
+
+    @Override
+    public String getMCVersion() {
+        return mcVersion;
+    }
+
+    
 }

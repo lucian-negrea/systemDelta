@@ -8,9 +8,7 @@ package com.anritsu.mcrepositorymanager.utils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -42,7 +40,7 @@ public class DownloadRepoArchive extends HttpServlet {
         FileInputStream fIn = new FileInputStream(archiveName);
         
         response.setContentType("application/x-download");
-        response.setContentLengthLong(f.length());
+        response.setContentLength((int)f.length());
         response.setHeader("Content-Disposition", "attachment; filename=" + f.getName());
         
         byte[] buffer = new byte[4096];

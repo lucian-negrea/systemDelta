@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.shared;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,11 +14,11 @@ import java.util.List;
  * @author RO100051
  */
 public class Filter implements Serializable{
-    private String q7admOutput;
-    private String mcVersion;
-    private List<String> availability;
-    private String customer;
-    private List<String> mcComponent;
+    private String q7admOutput="";
+    private String mcVersion = "";
+    private List<String> availability = new ArrayList<>();
+    private String customer = "";
+    private List<String> mcComponent = new ArrayList<>();
 
     public Filter() {
     }
