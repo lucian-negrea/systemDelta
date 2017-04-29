@@ -1,0 +1,48 @@
+<!--
+Uncomment this for XHTML entities
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+-->
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+             xmlns:g="urn:import:com.google.gwt.user.client.ui"
+             xmlns:b="urn:import:org.gwtbootstrap3.client.ui"
+             xmlns:buigwt="urn:import:org.gwtbootstrap3.client.ui.gwt"
+             xmlns:select="urn:import:org.gwtbootstrap3.extras.select.client.ui"
+             xmlns:summer="urn:import:org.gwtbootstrap3.extras.summernote.client.ui">
+    <ui:style>
+
+    </ui:style>
+    <g:HTMLPanel>
+       
+        <b:Container>
+              
+            
+            <b:PageHeader text="MasterClaw Repository Manager" />
+            <b:Button ui:field="changeMCVersion" type="PRIMARY" enabled="true" width="20%"></b:Button>
+            <select:Select ui:field="recommended" multiple="false"  width="16%"></select:Select>
+            <select:Select ui:field="availabilities" title="Availabilities" multiple="true" selectedTextFormat="count>4" width="16%"></select:Select>
+            <select:Select ui:field="customers" showTick="true" title="Customers" selectedTextFormat="count>3" width="16%"></select:Select> 
+            <select:Select ui:field="packagesName" title="Package" multiple="true" liveSearch="true" selectedTextFormat="count>5" width="16%"></select:Select>
+            <select:Select ui:field="activities" title="Activity" showSubtext="true" multiple="true" liveSearch="true" selectedTextFormat="count>5" width="16%" pull="RIGHT" ></select:Select>
+            <b:TextArea ui:field="q7admOutput"></b:TextArea>
+            <b:Button ui:field="filter" type="PRIMARY" enabled="false">Filter</b:Button>
+            <b:Button ui:field="generateRepository" type="PRIMARY" enabled="false" >Generate repository</b:Button>
+            <b:Button ui:field="downloadRepositoryArchive" type="PRIMARY" icon="STAR" iconSpin="true" iconBordered="true" enabled="false" >Download repository archive</b:Button>
+            
+            <buigwt:CellTable ui:field="packageListTable" bordered="true" condensed="true" striped="true" hover="true" height="100%" width="100%"/>
+            <g:HorizontalPanel ui:field="hPanelLoading" width="100%" height="100%" horizontalAlignment="ALIGN_CENTER" verticalAlignment="ALIGN_MIDDLE">
+                <b:Image type="ROUNDED" url="./loading_1.gif" visible="true" ui:field="loadingGif"/> 
+            </g:HorizontalPanel>
+            <b:Modal title="Preparing archive of selected MC packages" closable="true" dataKeyboard="true" dataBackdrop="STATIC" fade="true" ui:field="generateModal" b:id="generateModal">
+                <b:ModalBody>
+                    <b:Progress active="true" type="STRIPED" ui:field="totalProgressSection">
+                        <b:ProgressBar ui:field="totalProgressBar" type="INFO" percent="0" text="Calculating..." />
+                    </b:Progress>
+                    <g:HTML ui:field="packageGenerationMessage"></g:HTML>
+                </b:ModalBody>
+                <b:ModalFooter>
+                    <b:Button type="PRIMARY" dataDismiss="MODAL" ui:field="cancelPackageGeneration">Close</b:Button>
+                </b:ModalFooter>
+            </b:Modal>
+        </b:Container>
+    </g:HTMLPanel>
+</ui:UiBinder>

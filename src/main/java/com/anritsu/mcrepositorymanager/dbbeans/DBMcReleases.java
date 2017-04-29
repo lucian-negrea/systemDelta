@@ -77,8 +77,15 @@ public class DBMcReleases implements Serializable {
     @Basic(optional = false)
     @Column(name = "component_tier")
     private String componentTier;
+    @Basic(optional = false)
+    @Column(name = "component_group")
+    private String componentGroup;
     @Column(name = "component_role")
     private String componentRole;
+    @Column(name = "release_note")
+    private String releaseNote;
+    @Column(name = "less_recommended")
+    private boolean lessRecommended;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "releaseId")
     private Collection<DBMcActivities> dBMcActivitiesCollection;
     @OneToMany(mappedBy = "releaseId")
@@ -93,7 +100,7 @@ public class DBMcReleases implements Serializable {
         this.releaseId = releaseId;
     }
 
-    public DBMcReleases(Integer releaseId, String releaseType, Date releaseDate, String releaser, String releaserEmail, String componentName, String componentVersion, String componentType, String componentTier) {
+    public DBMcReleases(Integer releaseId, String releaseType, Date releaseDate, String releaser, String releaserEmail, String componentName, String componentVersion, String componentType, String componentTier, String releaseNote, String risk, boolean lessRecommended) {
         this.releaseId = releaseId;
         this.releaseType = releaseType;
         this.releaseDate = releaseDate;
@@ -103,6 +110,32 @@ public class DBMcReleases implements Serializable {
         this.componentVersion = componentVersion;
         this.componentType = componentType;
         this.componentTier = componentTier;
+        this.releaseNote = releaseNote;
+        this.lessRecommended = lessRecommended;
+    }
+
+    public boolean isLessRecommended() {
+        return lessRecommended;
+    }
+
+    public void setLessRecommended(boolean lessRecommended) {
+        this.lessRecommended = lessRecommended;
+    }
+
+    public String getReleaseNote() {
+        return releaseNote;
+    }
+
+    public void setReleaseNote(String releaseNote) {
+        this.releaseNote = releaseNote;
+    }
+
+    public String getComponentGroup() {
+        return componentGroup;
+    }
+
+    public void setComponentGroup(String componentGroup) {
+        this.componentGroup = componentGroup;
     }
 
     public Integer getReleaseId() {

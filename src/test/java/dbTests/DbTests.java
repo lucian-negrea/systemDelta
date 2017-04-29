@@ -27,34 +27,47 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:META-INF/appContextTest.xml")
 public class DbTests {
-     
+
     @Autowired
     private MainController dbControllerTest;
-    
+
     private Filter filter = new Filter();
-    
+
     @Test
-    public void connectionIsOK(){
-        dbControllerTest.getPackages();
-        Assert.assertTrue(dbControllerTest.getPackages().size() > 1);
+    public void connectionIsOK() {
+        dbControllerTest.getPackages("8.0");
+        Assert.assertTrue(dbControllerTest.getPackages("8.0").size() > 1);
     }
-    
-    
+
     @Test
-    public void dbMCsupportedBaselines(){
+    public void dbMCsupportedBaselines() {
         ArrayList<String> mcVersion = dbControllerTest.getMCVersions();
         Assert.assertTrue(mcVersion.get(0).equalsIgnoreCase("8.0"));
     }
-    
+
     @Test
-    public void generatePackageList(){
+    public void generatePackageList() {
         filter.setMcVersion("8.0");
         List<String> packageNames = new ArrayList<>();
         packageNames.add("cdb-model");
         filter.setMcComponent(packageNames);
         PackageInfoParser parser = PackageInfoParserFactory.getPackageInfoParser(filter);
-        HashSet<McPackage> mcPackages = parser.getPackageList(filter) ;
-        mcPackages.forEach((McPackage p) -> System.out.println(p.getFileName())) ;
+        HashSet<McPackage> mcPackages = parser.getPackageList(filter);
+        mcPackages.forEach((McPackage p) -> System.out.println(p.getFileName()));
         Assert.assertTrue(!mcPackages.isEmpty());
     }
+
+    
+
+//    @Test
+//    public void checkVersions(){
+//        String v1 = "6.0.0.0";
+//        String v2 = "6.1.0-1";
+//        Version v1ok = Version.valueOf(v1.replaceAll("^(.*)[\\.|-](.*)$","$1"));
+//        Version v2ok = Version.valueOf(v2.replaceAll("^(.*)[\\.|-](.*)$","$1"));
+//        System.out.println(v1ok.toString());
+//        System.out.println(v2ok.toString());
+//        Assert.assertTrue(v1ok.toString().equals("6.0.0"));
+//        Assert.assertTrue(v2ok.toString().equals("6.1.0"));
+//    }
 }

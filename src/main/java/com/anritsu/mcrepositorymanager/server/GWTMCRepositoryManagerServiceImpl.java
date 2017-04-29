@@ -6,17 +6,20 @@
 package com.anritsu.mcrepositorymanager.server;
 
 import com.anritsu.mcrepositorymanager.client.GWTMCRepositoryManagerService;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcAvailabilities;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcReleases;
 import com.anritsu.mcrepositorymanager.dbcontroller.MainController;
 import com.anritsu.mcrepositorymanager.packageinfoparser.PackageInfoParser;
 import com.anritsu.mcrepositorymanager.packageinfoparser.PackageInfoParserFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.Filter;
-import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import com.anritsu.mcrepositorymanager.utils.Packing;
-import com.anritsu.mcrepositorymanager.packageinfoparser.RSSParser;
 import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
+import com.anritsu.mcrepositorymanager.utils.Configuration;
+import com.anritsu.mcrepositorymanager.utils.GenerateRSS;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,45 +27,27 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  *
  * @author ro100051
  */
 public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet implements GWTMCRepositoryManagerService {
-    private Packing packing;
-    private PackageInfoParser parser;
-       
-//    public ArrayList<String> getAvailabilities(Filter f/*Parameter not used*/){
-//        ArrayList<String> availabilities = new ArrayList<>();
-//        HashSet<String> av = parser.getAvailability();
-//        for(String s: av){
-//            availabilities.add(s);
-//        }
-//        Collections.sort(availabilities);
-//        return availabilities;
-//    }
-//    
-//    public ArrayList<String> getCustomers(Filter f /*Parameter not used*/) {
-//        ArrayList<String> customers = new ArrayList<>();
-//        HashSet<String> cus = parser.getCustomers();
-//        for(String s: cus){
-//            if(!customers.contains(s)){
-//                customers.add(s);
-//            }
-//        }
-//        Collections.sort(customers);
-//        return customers;
-//    }
-
+    
+    private static final Logger LOGGER = Logger.getLogger(GWTMCRepositoryManagerServiceImpl.class.getName());
+           
     @Override
     public String generateRepository(ArrayList<McPackage> packages) {
-        packing = new Packing(packages);
+        Packing packing = new Packing(packages);
+        getThreadLocalRequest().getSession().setAttribute("packing", packing);
         return packing.buildArchive();
     }
 
     @Override
     public ArrayList<McPackage> getPackageList(Filter filter) {
+        PackageInfoParser parser = (PackageInfoParser) getThreadLocalRequest().getSession().getAttribute("parser");
         ArrayList<McPackage> packageList = new ArrayList<>();
         HashSet<McPackage> pack = parser.getPackageList(filter);
         for(McPackage p: pack){
@@ -77,7 +62,7 @@ public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet impl
         SortedSet<String> mcVersions = new TreeSet<>();
         
         // Get MC version according to files RSS available files
-        File folder = new File(RSSParser.FOLDER_PATH);
+        File folder = new File(Configuration.getInstance().getRssFilesPath());
         for(File f: folder.listFiles()){
             if(f.isFile() && f.getName().matches("MC-(.*)-ReleaseStatus.xlsx")){
                 mcVersions.add(f.getName().replace("MC-", "").replace("-ReleaseStatus.xlsx", ""));
@@ -85,47 +70,137 @@ public class GWTMCRepositoryManagerServiceImpl extends RemoteServiceServlet impl
         }
         
         // Get MC versions from DB
-        mcVersions.addAll(MainController.getInstance().getMCVersions());        
-        System.out.println(mcVersions.size() + " versions detected!");
-        return new ArrayList<>(mcVersions);
+        // Add supported version in config file
+        mcVersions.addAll(MainController.getInstance().getMCVersions()); 
+        SortedSet<String> supportedMcVersions = new TreeSet<>();
+        for(String version: mcVersions){
+            if(Configuration.getInstance().getSupportedVersions().contains(version)){
+                supportedMcVersions.add(version);
+            }
+        }
+        System.out.println(supportedMcVersions.size() + " versions detected!");
+        return new ArrayList<>(supportedMcVersions);
     }
 
     @Override
     public PackingStatus getPackingStatus() {
+        Packing packing = (Packing) getThreadLocalRequest().getSession().getAttribute("packing");
         return packing.getStatus();
     }    
 
-//    @Override
-//    public ArrayList<String> getMcComponents(Filter filter) {
-//        ArrayList<String> mcComponents = new ArrayList<>();
-//        HashSet<McPackage> mcComp = parser.getPackageList();
-//        for(McPackage p: mcComp){
-//            if(!mcComponents.contains(p.getName())){
-//                mcComponents.add(p.getName());
-//            }
-//        }
-//        Collections.sort(mcComponents);
-//        return mcComponents;
-//    }
-
     @Override
-    public boolean initiateParser(Filter filter) {
-        parser = PackageInfoParserFactory.getPackageInfoParser(filter);
+    public boolean initiateParser(Filter filter) {        
+        PackageInfoParser parser = PackageInfoParserFactory.getPackageInfoParser(filter);
+        getThreadLocalRequest().getSession().setAttribute("parser", parser);
         if(parser!=null) return true;
         else return false;
     }
 
     @Override
-    public MCBaselineAttributes getMCBaselineAttributes() {        
+    public MCBaselineAttributes getMCBaselineAttributes() { 
+        PackageInfoParser parser = (PackageInfoParser) getThreadLocalRequest().getSession().getAttribute("parser");
+        getThreadLocalRequest().getSession().setAttribute("parser", parser);
         MCBaselineAttributes mcBaselinesAttributes = new MCBaselineAttributes();
         mcBaselinesAttributes.setMcVersion(parser.getMCVersion());
         mcBaselinesAttributes.setAvailabilities(parser.getAvailability());
         mcBaselinesAttributes.setCustomers(parser.getCustomers());
         mcBaselinesAttributes.setPackageNames(parser.getPackageNameList());
+        mcBaselinesAttributes.setPackageActivities(parser.getActivities());
         return mcBaselinesAttributes;
     }
 
-    
+    @Override
+    public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages) {
+        PackageInfoParser parser = (PackageInfoParser) getThreadLocalRequest().getSession().getAttribute("parser");
+        return parser.solveDependencies(mcPackages);
+    }
 
-   
+    @Override
+    public boolean authenticate(String password) {        
+        if(password.equals(Configuration.getInstance().getReleaseManagementPassword())){
+            getThreadLocalRequest().getSession().setAttribute("authenticated", "authenticated");
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isAuthenticated() {
+        if(getThreadLocalRequest().getSession().getAttribute("authenticated") != null &&
+                getThreadLocalRequest().getSession().getAttribute("authenticated").equals("authenticated")){
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public ArrayList<RecommendedMcPackage> getPackageListForReleaseManagement() {
+        PackageInfoParser parser = (PackageInfoParser) getThreadLocalRequest().getSession().getAttribute("parser");
+        ArrayList<RecommendedMcPackage> rmPackageList = new ArrayList<>();
+        rmPackageList = parser.getPackageListForReleaseManagement();
+        rmPackageList.stream().distinct().collect(Collectors.toList());
+        
+        return rmPackageList;
+    }
+
+    @Override
+    public RecommendedMcPackage updateRecommendedVersion(RecommendedMcPackage mcPackage) {
+        // Clear old recommended version
+        for(DBMcReleases dbmcr: MainController.getInstance().getDBMcReleasesByPackageName(mcPackage.getPackageName())){
+            for(DBMcAvailabilities dbmca: dbmcr.getDBMcAvailabilitiesCollection()){
+                if(mcPackage.getRecommendedVersion() != null && dbmca.getAvailability().equals(mcPackage.getRecommendedVersion().getAvailability())){
+                    dbmca.setIsRecommended(Boolean.FALSE);
+                    MainController.getInstance().updateDBMcAvailability(dbmca);
+                }
+            }
+        }
+        
+        
+        
+        DBMcReleases dbmcr = MainController.getInstance().getDBMcReleasesByNameVersion(mcPackage.getPackageName(), mcPackage.getRecommendedVersion().getPackageVersion());
+        // Set less recommended
+        dbmcr.setLessRecommended(mcPackage.getRecommendedVersion().isLessRecommended());
+        MainController.getInstance().updateDBMcReleases(dbmcr);
+        // Set recommended version
+        for(DBMcAvailabilities dbmca: dbmcr.getDBMcAvailabilitiesCollection()){
+            if(dbmca.getAvailability().equals(mcPackage.getRecommendedVersion().getAvailability())){
+                dbmca.setIsRecommended(Boolean.TRUE);
+                dbmca.setNotes(mcPackage.getRecommendedVersion().getNotes());                
+                MainController.getInstance().updateDBMcAvailability(dbmca);
+            }
+        }
+        
+        
+        mcPackage.setPackageInfoModified(false);
+        return mcPackage;
+    }
+
+    @Override
+    public RecommendedMcPackage removeFromTable(RecommendedMcPackage mcPackage) {
+        if(MainController.getInstance().hideRecommendedVersion(mcPackage.getPackageName(), mcPackage.getAvailability(), mcPackage.getMcVersion())){
+            mcPackage.setShowInTable(false);
+            return mcPackage;
+        }
+        return mcPackage;
+    
+    }
+
+    @Override
+    public String generateRSS(HashSet<RecommendedMcPackage> mcPackages) {
+        // 
+        GenerateRSS generateRSS = new GenerateRSS(mcPackages);
+        return generateRSS.getRSS();
+    }
+
+    @Override
+    public String getSourceXLS() {
+        return Configuration.getInstance().getSourceXLS();
+    }
+
+    @Override
+    public String getSourceDB() {
+        return Configuration.getInstance().getSourceDB();
+    }
+
+  
 }

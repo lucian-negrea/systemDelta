@@ -19,10 +19,55 @@ public class Filter implements Serializable{
     private List<String> availability = new ArrayList<>();
     private String customer = "";
     private List<String> mcComponent = new ArrayList<>();
+    private List<MCPackageActivities> activities = new ArrayList<>();
+    private boolean recommended = true;
+    private String recommendedFilter = "recommended";
+    private boolean localDependencies = false;
+
+    public boolean isLocalDependencies() {
+        return localDependencies;
+    }
+
+    public void setLocalDependencies(boolean localDependencies) {
+        this.localDependencies = localDependencies;
+    }
+    
+    public String getRecommendedFilter() {
+        return recommendedFilter;
+    }
+
+    public void setRecommendedFilter(String recommendedFilter) {
+        this.recommendedFilter = recommendedFilter;
+    }
 
     public Filter() {
     }
 
+    public boolean isRecommended() {
+        return recommended;
+    }
+
+    public void setRecommended(boolean recommended) {
+        this.recommended = recommended;
+    }
+
+    public String getCustomer() {
+        return customer;
+    }
+
+    public void setCustomer(String customer) {
+        this.customer = customer;
+    }
+
+    
+    public List<MCPackageActivities> getActivities() {
+        return activities;
+    }
+
+    public void setActivities(List<MCPackageActivities> activities) {
+        this.activities = activities;
+    }
+    
     public List<String> getMcComponent() {
         return mcComponent;
     }
@@ -53,15 +98,5 @@ public class Filter implements Serializable{
 
     public void setAvailability(List<String> availability) {
         this.availability = availability;
-    }
-
-    public String getCustomer() {
-        return customer;
-    }
-
-    public void setCustomer(String customer) {
-        this.customer = customer;
-    }
-
-    
+    }    
 }

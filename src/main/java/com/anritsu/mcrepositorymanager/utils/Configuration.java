@@ -20,13 +20,18 @@ import java.util.logging.Logger;
 public class Configuration {
     // Default values to be used if no config file is found
     private static Configuration configuration;
-    private static String dbUser = "mclawpkginfo";
-    private static String dbPassword = "mclawpkginfo";
-    private static String dbIP = "172.28.35.31";
-    private static String dbName = "mclawpkginfo";
+    private static String dbUser = "mclawpkginfo_test";
+    private static String dbPassword = "mclawpkginfo_test";
+    private static String dbIP = "localhost";
+    private static String dbName = "mclawpkginfo_test";
     private static String rssFilesPath = "rss";
-    private static String mcPackagesPath = "mcPackage";
-    private static String generatedRepositories = "generatedRepositories";
+    private static String mcPackagesPath = "mcPackages";
+    private static String generatedRepositoriesPath = "generatedRepositories";
+    private static String releaseManagementPassword = "admin";
+    private static String supportedVersions = "7.0.2,7.1,8.0";
+    private static String sourceXLS = "7.0.2";
+    private static String sourceDB = "7.1,8.0";
+    private static String rssTemplatePath = "rss/";
     private Properties prop = new Properties();
     
 
@@ -124,5 +129,96 @@ public class Configuration {
         }
         System.out.println("Returning: " + rssFilesPath);
         return rssFilesPath;
+    }
+    
+    public String getReleaseManagementPassword(){
+        try{
+            if(prop.getProperty("releaseManagementPassword")!=null){
+                releaseManagementPassword = prop.getProperty("releaseManagementPassword");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for releaseManagementPassword: " + releaseManagementPassword);
+        }
+        System.out.println("Returning: " + releaseManagementPassword);
+        return releaseManagementPassword;
+        
+    }
+    
+    public String getSupportedVersions(){
+        try{
+            if(prop.getProperty("supportedVersions")!=null){
+                supportedVersions = prop.getProperty("supportedVersions");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for supportedVersions: " + supportedVersions);
+        }
+        System.out.println("Returning: " + supportedVersions);
+        return supportedVersions;
+        
+    }
+    
+     public String getMcPackagesPath(){
+        try{
+            if(prop.getProperty("mcPackagesPath")!=null){
+                mcPackagesPath = prop.getProperty("mcPackagesPath");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for mcPackagesPath: " + mcPackagesPath);
+        }
+        System.out.println("Returning: " + mcPackagesPath);
+        return mcPackagesPath;
+        
+    }
+     
+     public String getGeneratedRepositoriesPath(){
+        try{
+            if(prop.getProperty("generatedRepositoriesPath")!=null){
+                generatedRepositoriesPath = prop.getProperty("generatedRepositoriesPath");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for mcPackagesPath: " + generatedRepositoriesPath);
+        }
+        System.out.println("Returning: " + generatedRepositoriesPath);
+        return generatedRepositoriesPath;
+        
+    }
+     
+      public String getRssTemplatePath(){
+        try{
+            if(prop.getProperty("rssTemplatePath")!=null){
+                rssTemplatePath = prop.getProperty("rssTemplatePath");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for rssTemplatePath: " + rssTemplatePath);
+        }
+        System.out.println("Returning: " + rssTemplatePath);
+        return rssTemplatePath;
+        
+    }
+      
+    public String getSourceXLS(){
+        try{
+            if(prop.getProperty("sourceXLS")!=null){
+                sourceXLS = prop.getProperty("sourceXLS");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for rssTemplatePath: " + sourceXLS);
+        }
+        System.out.println("Returning: " + sourceXLS);
+        return sourceXLS;
+        
+    }
+    
+    public String getSourceDB(){
+        try{
+            if(prop.getProperty("sourceDB")!=null){
+                sourceDB = prop.getProperty("sourceDB");
+            }
+        }catch(Exception exp){
+            System.out.println("Returning default value for rssTemplatePath: " + sourceDB);
+        }
+        System.out.println("Returning: " + sourceDB);
+        return sourceDB;
+        
     }
 }

@@ -19,7 +19,16 @@ public class MCBaselineAttributes implements Serializable{
     private HashSet<String> customers;
     private HashSet<String> availabilities;
     private HashSet<String> packageNames;
+    private HashSet<MCPackageActivities> packageActivities;
 
+    public HashSet<MCPackageActivities> getPackageActivities() {
+        return packageActivities;
+    }
+
+    public void setPackageActivities(HashSet<MCPackageActivities> packageActivities) {
+        this.packageActivities = packageActivities;
+    }
+    
     public String getMcVersion() {
         return mcVersion;
     }

@@ -45,7 +45,7 @@ public class DBMcActivities implements Serializable {
     @Column(name = "activity_type")
     private String activityType;
     @Column(name = "activity_activity_id")
-    private Integer activityActivityId;
+    private String activityActivityId;
     @Column(name = "activity_uri")
     private String activityUri;
     @Column(name = "activity_text")
@@ -82,11 +82,11 @@ public class DBMcActivities implements Serializable {
         this.activityType = activityType;
     }
 
-    public Integer getActivityActivityId() {
+    public String getActivityActivityId() {
         return activityActivityId;
     }
 
-    public void setActivityActivityId(Integer activityActivityId) {
+    public void setActivityActivityId(String activityActivityId) {
         this.activityActivityId = activityActivityId;
     }
 

@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.packageinfoparser;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.utils.Configuration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,12 +19,16 @@ public class PackageInfoParserFactory {
     private static final Logger LOGGER = Logger.getLogger(PackageInfoParserFactory.class.getName());
     
     public static PackageInfoParser getPackageInfoParser(Filter filter){
-        if(filter.getMcVersion().equals("8.0")){
-            LOGGER.log(Level.INFO, filter.getMcVersion() + " selectd => using changes.xml DB as MC package info source.");
-            return new DBParser(filter);
-        }else{
+        if(Configuration.getInstance().getSourceXLS().contains(filter.getMcVersion())){
             LOGGER.log(Level.INFO, filter.getMcVersion() + " selectd => using local RSS as MC package info source.");
             return new RSSParser(filter);
+        }else if(Configuration.getInstance().getSourceDB().contains(filter.getMcVersion())){
+            LOGGER.log(Level.INFO, filter.getMcVersion() + " selectd => using changes.xml DB as MC package info source.");
+            return new DBParser(filter);
+            
+        }else{
+            LOGGER.log(Level.INFO, filter.getMcVersion() + " selectd => using changes.xml DB as MC package info source.");
+            return new DBParser(filter);
         }
     }
 }

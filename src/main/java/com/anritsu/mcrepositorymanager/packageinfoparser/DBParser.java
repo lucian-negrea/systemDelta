@@ -5,6 +5,7 @@
  */
 package com.anritsu.mcrepositorymanager.packageinfoparser;
 
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcActivities;
 import com.anritsu.mcrepositorymanager.dbbeans.DBMcAvailabilities;
 import com.anritsu.mcrepositorymanager.dbbeans.DBMcCustomers;
 import com.anritsu.mcrepositorymanager.dbbeans.DBMcDependencies;
@@ -12,15 +13,19 @@ import com.anritsu.mcrepositorymanager.dbbeans.DBMcItemsReleased;
 import com.anritsu.mcrepositorymanager.dbbeans.DBMcReleases;
 import com.anritsu.mcrepositorymanager.dbcontroller.MainController;
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
 import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 
 /**
  *
@@ -30,47 +35,136 @@ public class DBParser implements PackageInfoParser {
 
     private String mcVersion;
     private static final Logger LOGGER = Logger.getLogger(DBParser.class.getName());
+    private Filter filter;
 
     public DBParser(Filter filter) {
         mcVersion = filter.getMcVersion();
+        this.filter = filter;
+
     }
 
     @Override
     public HashSet<McPackage> getPackageList(Filter filter) {
+        this.filter = filter;
         HashSet<McPackage> mcPackages = new HashSet<>();
+        HashSet<McPackage> mcPackagesDependencies = new HashSet<>();
         ApplyFilter applyFilter = new ApplyFilter(filter);
-        HashSet<DBMcReleases> mcReleases = MainController.getInstance().getPackages();
+        HashSet<DBMcReleases> mcReleases = MainController.getInstance().getPackages(mcVersion);
         if (!mcReleases.isEmpty()) {
             for (DBMcReleases dbmcr : mcReleases) {
                 McPackage mcp = getMcPackageFromDBMcReleases(dbmcr);
-                if ((applyFilter.isMcPackageMatchAvailabilityFilter(mcp)
+                if ((applyFilter.isMcPackageMatchRecommendedLatestFilter(mcp)
+                        && applyFilter.isMcPackageMatchAvailabilityFilter(mcp)
                         && applyFilter.isMcPackageMatchCustomerFilter(mcp)
                         && applyFilter.isMcPackageMatchMcComponentFilter(mcp)
+                        && applyFilter.isMcPackageMatchActivityFilter(mcp)
                         && applyFilter.isMcPackageMatchQ7admOutput(mcp))) {
+                    
+                    mcp.setMatchFilter(true);
+                    try {
+                        DefaultArtifactVersion packageVersion = new DefaultArtifactVersion(mcp.getPackageVersion().split("-")[0]);
+                        DefaultArtifactVersion pacakgeQ7admOutpuVersion = new DefaultArtifactVersion(mcp.getQ7admOutputVersion().split("-")[0]);
+
+                        if (mcp.isMatchFilter() && packageVersion.compareTo(pacakgeQ7admOutpuVersion) > 0) {
+                            mcp.setMcPackageSuitableForDownload(true);
+                        } else {
+                            mcp.setMcPackageSuitableForDownload(false);
+                            mcp.setAddToRepository(false);
+                        }
+                    }catch(Exception exp){
+                        mcp.setMcPackageSuitableForDownload(true);
+                    }
+
                     mcPackages.add(mcp);
+                    LOGGER.log(Level.INFO, "Adding: {0}-{1}, {2}, {3}, {4}. list.size={5}", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList(), mcPackages.size()});
+                }
+            }
+        }
+
+        //Applying recommended filter
+        HashSet<McPackage> mcPackagesFiltered = new HashSet<>();
+
+        switch (filter.getRecommendedFilter()) {
+            case "recommended":
+                // Adding GCA
+                ArrayList<String> gcas = new ArrayList<String>();
+                for (McPackage p : mcPackages) {
+                    if (p.getAvailability().equalsIgnoreCase("GCA")) {
+                        mcPackagesFiltered.add(p);
+                        gcas.add(p.getName());
+                    }
                 }
 
-                LOGGER.log(Level.INFO, "Adding: {0}-{1}, {2}, {3}, {4}", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
+                // Adding FCA if GCA is not present
+                for (McPackage p : mcPackages) {
+                    if (!gcas.contains(p.getName())) {
+                        mcPackagesFiltered.add(p);
+                    }
+                }
 
-                // Remove older version for specific package name/availability
-                mcPackages = keepLatestVersion(mcp, mcPackages);
-            }
-            LOGGER.log(Level.INFO, "mcPackages size before dependencies: " + mcPackages.size());
-            mcPackages = solveDependencies(mcPackages);
-            LOGGER.log(Level.INFO, "mcPackages size after dependencies: " + mcPackages.size());
+                // Adding other availabilities if selected
+                for (McPackage p : mcPackages) {
+                    if (!p.getAvailability().equalsIgnoreCase("FCA") && !p.getAvailability().equalsIgnoreCase("GCA")) {
+                        mcPackagesFiltered.add(p);
+                    }
+                }
+                break;
+
+            case "latest validated":
+                // Adding FCA
+                ArrayList<String> fcas = new ArrayList<String>();
+                for (McPackage p : mcPackages) {
+                    if (p.getAvailability().equalsIgnoreCase("FCA")) {
+                        mcPackagesFiltered.add(p);
+                        fcas.add(p.getName());
+                    }
+                }
+
+                // Adding FCA if GCA is not present
+                for (McPackage p : mcPackages) {
+                    if (!fcas.contains(p.getName())) {
+                        mcPackagesFiltered.add(p);
+                    }
+                }
+
+                // Adding other availabilities if selected
+                for (McPackage p : mcPackages) {
+                    if (!p.getAvailability().equalsIgnoreCase("FCA") && !p.getAvailability().equalsIgnoreCase("GCA")) {
+                        mcPackagesFiltered.add(p);
+                    }
+                }
+                break;
+            case "latest":
+                mcPackagesFiltered = mcPackages;
+                break;
         }
-        LOGGER.log(Level.INFO, "mcPackages size: " + mcPackages.size());
-        return mcPackages;
+        
+        // Solving dependencies for packages isSuitableForDownload  
+        HashSet<McPackage> mcPackagesListToSolveDep = new HashSet<>();
+        for(McPackage p: mcPackagesFiltered){
+            if(p.isMcPackageSuitableForDownload()){
+                mcPackagesListToSolveDep.add(p);
+            }
+        }
+
+        // Solving dependencies
+        mcPackagesDependencies = solveDependencies(mcPackagesListToSolveDep);
+
+        LOGGER.log(Level.INFO, "mcPackages match filter size: {0}", mcPackages.size());
+        LOGGER.log(Level.INFO, "mcPackagesDependencies size: {0}", mcPackagesDependencies.size());
+        mcPackagesFiltered.addAll(mcPackagesDependencies);
+        LOGGER.log(Level.INFO, "mcPackages size after merge with mcPackagesDependencies: {0}", mcPackagesDependencies.size());
+        return mcPackagesFiltered;
     }
 
     @Override
     public HashSet<String> getCustomers() {
-        return new HashSet<>(MainController.getInstance().getCustomers());
+        return new HashSet<>(MainController.getInstance().getCustomers(mcVersion));
     }
 
     @Override
     public HashSet<String> getAvailability() {
-        return MainController.getInstance().getAvailabilities();
+        return MainController.getInstance().getAvailabilities(mcVersion);
     }
 
     public String getMcVersion() {
@@ -79,7 +173,11 @@ public class DBParser implements PackageInfoParser {
 
     @Override
     public HashSet<String> getPackageNameList() {
-        return new HashSet(MainController.getInstance().getPackagesName());
+        return new HashSet(MainController.getInstance().getPackagesName(mcVersion));
+    }
+
+    public HashSet<MCPackageActivities> getActivities() {
+        return new HashSet<>(MainController.getInstance().getActivities(mcVersion));
     }
 
     @Override
@@ -87,68 +185,76 @@ public class DBParser implements PackageInfoParser {
         return this.mcVersion;
     }
 
-    public HashSet<McPackage> keepLatestVersion(McPackage mcp, HashSet<McPackage> mcPackages) {
-        HashSet<McPackage> mcPackagesLatestVersion = new HashSet<>(mcPackages);
-        for (McPackage m : mcPackages) {
-            String mcpVersion = mcp.getPackageVersion().replaceAll("\\.", "").replaceAll("-", "").replaceAll("_", "");
-            String mVersion = m.getPackageVersion().replaceAll("\\.", "").replaceAll("-", "").replaceAll("_", "");
-            if (m.getName().equalsIgnoreCase(mcp.getName())
-                    && m.getAvailability().equalsIgnoreCase(mcp.getAvailability())
-                    && Integer.parseInt(mcpVersion) < Integer.parseInt(mVersion)) {
-                mcPackagesLatestVersion.remove(mcp);
-                LOGGER.log(Level.INFO, "Removing: {0}-{1}, {2}, {3}, {4}", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
-            } else if (m.getName().equalsIgnoreCase(mcp.getName())
-                    && m.getAvailability().equalsIgnoreCase(mcp.getAvailability())
-                    && Integer.parseInt(mcpVersion) > Integer.parseInt(mVersion)) {
-                mcPackagesLatestVersion.remove(m);
-                LOGGER.log(Level.INFO, "Removing: {0}-{1}, {2}, {3}, {4}", new Object[]{m.getName(), m.getPackageVersion(), m.getMcVersion(), m.getAvailability(), m.getCustomerList()});
-            }
-        }
-        return mcPackagesLatestVersion;
-    }
-
-    private HashSet<McPackage> getDependencies(McPackage mcPackage) {
+    private HashSet<McPackage> getDependencies(McPackage mcPackage, Filter f) {
         HashSet<McPackage> mcPackageDependencies = new HashSet<>();
-        LOGGER.log(Level.INFO, "Getting releases");
         DBMcReleases dbmcr = MainController.getInstance().getDBMcReleasesByNameVersion(mcPackage.getName(), mcPackage.getPackageVersion());
-        LOGGER.log(Level.INFO, "Release " + dbmcr.getComponentName());
+        if (dbmcr.getDBMcAvailabilitiesCollection() == null) {
+            LOGGER.log(Level.INFO, "{0}-{1} not present in DB => no dependency! ", new Object[]{mcPackage.getName(), mcPackage.getPackageVersion()});
+            return mcPackageDependencies;
+        }
+
         for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
-            if (mcPackage.getMcVersion().equalsIgnoreCase(dbmca.getMcVersion())) {
+            if (mcPackage.getAvailability() != null && mcPackage.getAvailability().equalsIgnoreCase(dbmca.getAvailability()) && mcPackage.getMcVersion().equalsIgnoreCase(dbmca.getMcVersion())) {
                 List<DBMcDependencies> dbMcDependencies = new ArrayList<>(dbmca.getDBMcDependenciesCollection());
                 for (DBMcDependencies dbmcd : dbMcDependencies) {
                     McPackage mcpd = new McPackage();
                     String dbmcdName = dbmcd.getRequiredComponent();
-                    String dbmcdVersion = dbmcd.getRequiredVersion();
+                    String dbmcdVersion = dbmcd.getRequiredVersion().replaceAll("\\+", "");
+                    boolean localDependency = (dbmcd.getRequiredLocal().equals("yes"));
+                    boolean greater = (dbmcd.getRequiredVersion().contains("+"));
                     mcpd.setName(dbmcdName);
                     mcpd.setPackageVersion(dbmcdVersion);
-                    boolean greater = false;
-                    if (dbmcdVersion.contains("+")) {
-                        greater = true;
+                    mcpd.setMcVersion(mcPackage.getMcVersion());
+                    if (filter.isRecommended()) {
+                        mcpd = getRecommendedMcPackage(mcpd);
+                        LOGGER.log(Level.INFO, mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " depends on (recommended): " + mcpd.getName() + "-" + mcpd.getPackageVersion());
+                    } else {
+                        mcpd = getLatestMcPackage(mcpd, greater);
+                        LOGGER.log(Level.INFO, mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " depends on (latest): " + mcpd.getName() + "-" + mcpd.getPackageVersion());
                     }
-                    mcpd = getLatestMcPackage(mcpd, greater);
-                    mcpd.setDependency(true);
+
                     if (mcpd.getName() == null) {
                         mcpd.setName(dbmcdName);
-                        mcpd.setPackageVersion(dbmcdVersion);                       
+                        mcpd.setPackageVersion(dbmcdVersion);
+                        LOGGER.log(Level.INFO, mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " depends on (not in DB): " + mcpd.getName() + "-" + mcpd.getPackageVersion());
                     }
-                     mcPackageDependencies.add(mcpd);
+                    
+                    // dealing with local/remote dependency
+                    if(!f.isLocalDependencies()){
+                        mcpd.setDependency(true);
+                        mcPackageDependencies.add(mcpd);
+                    }else if(localDependency && f.isLocalDependencies()){
+                        mcpd.setDependency(true);
+                        mcPackageDependencies.add(mcpd);
+                    }
+                    
+                    
                 }
             }
         }
-        LOGGER.log(Level.INFO, "Dependencies for " + mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " are: ");
-        for (McPackage p : mcPackageDependencies) {
-            LOGGER.log(Level.INFO, p.getName() + "-" + p.getPackageVersion());
-        }
+        LOGGER.log(Level.INFO, "There are {2} dependencies for {0}-{1}: ", new Object[]{mcPackage.getName(), mcPackage.getPackageVersion(), mcPackageDependencies.size()});
+        mcPackageDependencies.stream().forEach((p) -> {
+            LOGGER.log(Level.INFO, "{0}-{1}", new Object[]{p.getName(), p.getPackageVersion()});
+        });
         return mcPackageDependencies;
     }
 
     private McPackage getMcPackageFromDBMcReleases(DBMcReleases dbmcr) {
         McPackage mcp = new McPackage();
+        mcp.setTier(dbmcr.getComponentTier());
+        mcp.setGroup(dbmcr.getComponentRole());
         mcp.setName(dbmcr.getComponentName());
         mcp.setPackageVersion(dbmcr.getComponentVersion());
-        DBMcItemsReleased releasedItem = dbmcr.getDBMcItemsReleasedCollection().iterator().next();
-        mcp.setDownloadLink(releasedItem.getItemLocation());
-        String dowloadLink[] = mcp.getDownloadLink().split("/");
+        mcp.setReleaseDate(dbmcr.getReleaseDate());
+        mcp.setReleaseNote(dbmcr.getReleaseNote());
+        mcp.setLessRecommended(dbmcr.isLessRecommended());
+        Collection<DBMcItemsReleased> releasedItem = dbmcr.getDBMcItemsReleasedCollection();
+        ArrayList<String> downloadLinks = new ArrayList<>();
+        for (DBMcItemsReleased dbmcir : releasedItem) {
+            downloadLinks.add(dbmcir.getItemLocation());
+        }
+        mcp.setDownloadLinks(new HashSet(downloadLinks));
+        String dowloadLink[] = mcp.getDownloadLinks().iterator().next().split("/");
         mcp.setFileName(dowloadLink[dowloadLink.length - 1]);
 
         // Set availability
@@ -156,65 +262,192 @@ public class DBParser implements PackageInfoParser {
             if (dbmca.getMcVersion().equals(mcVersion)) {
                 mcp.setMcVersion(mcVersion);
                 mcp.setAvailability(dbmca.getAvailability());
+                mcp.setRisk(dbmca.getRisk());
+
+                // Set recommended
+                try {
+                    mcp.setRecommended(dbmca.getIsRecommended());
+                } catch (NullPointerException ex) {
+                    mcp.setRecommended(false);
+                }
+
+                // Set latest
+                DBMcAvailabilities latestDbmca = MainController.getInstance().getLatestVersion(dbmca);
+                System.out.println("###########Latest: " + dbmca.getReleaseId().getComponentName() + "-" + dbmca.getReleaseId().getComponentVersion() + " :: " + dbmca.getAvailability() + ":" + dbmca.getMcVersion() + 
+                        " ################### " +  latestDbmca.getReleaseId().getComponentName() + latestDbmca.getReleaseId().getComponentVersion() + " :: " + latestDbmca.getAvailability()+":" + latestDbmca.getMcVersion());
+                if (latestDbmca.equals(dbmca)) {
+                    mcp.setLatest(true);
+                }
+
+                // Set Notes
+                try {
+                    mcp.setNotes(dbmca.getNotes());
+                } catch (Exception exp) {
+                    mcp.setNotes(exp.getMessage());
+                }
 
                 // Set customers
                 HashSet<String> customers = new HashSet<>();
-                customers.add(" ");
                 for (DBMcCustomers dbmcc : dbmca.getDBMcCustomersCollection()) {
                     customers.add(dbmcc.getCustomerName());
                 }
                 mcp.setCustomerList(customers);
-                LOGGER.log(Level.INFO, "Adding : {0}-{1}, {2}, {3}, {4} to mcPackages list!", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
+                LOGGER.log(Level.INFO, "Adding customers: {4} to {0}-{1}, {2}, {3}", new Object[]{mcp.getName(), mcp.getPackageVersion(), mcp.getMcVersion(), mcp.getAvailability(), mcp.getCustomerList()});
             }
         }
+
+        // Set activities
+        HashSet<MCPackageActivities> activities = new HashSet<>();
+        for (DBMcActivities dbmca : dbmcr.getDBMcActivitiesCollection()) {
+            MCPackageActivities mcpa = new MCPackageActivities();
+            mcpa.setReleaseId(String.valueOf(dbmca.getReleaseId().getReleaseId()));
+            mcpa.setActivityId(String.valueOf(dbmca.getActivityActivityId()));
+            mcpa.setActivityType(dbmca.getActivityType());
+            mcpa.setActivityText(dbmca.getActivityText());
+            activities.add(mcpa);
+        }
+        mcp.setActivities(activities);
+
         return mcp;
     }
 
-    private McPackage getLatestMcPackage(McPackage mcPackage, boolean greater) {
-        List<DBMcReleases> dbMcReleases = MainController.getInstance().getDBMcReleasesByPackageName(mcPackage.getName());
-        HashMap<Integer, DBMcReleases> dbMcReleasesMap = new HashMap<>();
-        McPackage m = new McPackage();
-
-        for (DBMcReleases dbmcr : dbMcReleases) {
-            String dbmcrVersion = dbmcr.getComponentVersion().replaceAll("\\.", "").replaceAll("-", "");
-            String mcPackageVersion = mcPackage.getPackageVersion().replaceAll("\\.", "").replaceAll("-", "");
-            dbMcReleasesMap.put(Integer.parseInt(dbmcrVersion), dbmcr);
-            if (dbmcrVersion.equalsIgnoreCase(mcPackageVersion) && !greater) {
-                m = getMcPackageFromDBMcReleases(dbmcr);
-            } else if (greater) {
-                Map.Entry<Integer, DBMcReleases> maxEntry = null;
-                for (Map.Entry<Integer, DBMcReleases> entry : dbMcReleasesMap.entrySet()) {
-                    if (maxEntry == null || entry.getKey().compareTo(maxEntry.getKey()) > 0) {
-                        maxEntry = entry;
-                        m = getMcPackageFromDBMcReleases(maxEntry.getValue());
+    private RecommendedMcPackage getRecommendedMcPackageFromDBMcReleases(DBMcReleases dbmcr) {
+        System.out.println("Processing " + dbmcr.getComponentName());
+        RecommendedMcPackage rmcp = new RecommendedMcPackage();
+        rmcp.setMcVersion(mcVersion);
+        for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
+            if (dbmca.getMcVersion().equalsIgnoreCase(mcVersion)) {
+                if (!rmcp.isShowInTable()) {
+                    boolean showInTable = false;
+                    try {
+                        showInTable = dbmca.getIsRecommended();
+                    } catch (Exception exp) {
+                        //exp.printStackTrace();
+                        showInTable = true;
                     }
+                    rmcp.setShowInTable(showInTable);
+                }
+            }
+
+            if (dbmca.getMcVersion().equalsIgnoreCase(mcVersion)) {
+                rmcp.setTier(dbmcr.getComponentTier());
+                rmcp.setGroup(dbmcr.getComponentGroup());
+                rmcp.setPackageName(dbmcr.getComponentName());
+                rmcp.setAvailability(dbmca.getAvailability());
+
+                ArrayList<McPackage> versions = new ArrayList<>();
+                for (DBMcAvailabilities dbmcav : MainController.getInstance().getmcPackageVersions(rmcp.getPackageName(), rmcp.getMcVersion(), dbmca.getAvailability())) {
+                    versions.add(getMcPackageFromDBMcReleases(dbmcav.getReleaseId()));
+                }
+                System.out.println("###################VERSIONS: " + versions.size());
+                rmcp.setPackageVersions(versions);
+
+                McPackage recommendedVersion = new McPackage();
+                if (MainController.getInstance().getRecommendedVersion(dbmca) != null) {
+                    recommendedVersion = getMcPackageFromDBMcReleases(MainController.getInstance().getRecommendedVersion(dbmca).getReleaseId());
+                    rmcp.setRecommendedVersion(recommendedVersion);
+                    for (McPackage p : versions) {
+                        System.out.println(p.getPackageVersion());
+                        System.out.println(rmcp.getRecommendedVersion().getPackageVersion());
+                        DefaultArtifactVersion v = new DefaultArtifactVersion(p.getPackageVersion().split("-")[0]);
+                        DefaultArtifactVersion vRecommended = new DefaultArtifactVersion(rmcp.getRecommendedVersion().getPackageVersion().split("-")[0]);
+                        if (v.compareTo(vRecommended) > 0) {
+                            rmcp.setRecommendedVersionCandidate(true);
+                        }
+                    }
+                }
+
+            }
+        }
+        LOGGER.log(Level.INFO, "{0}-{1} : showInTable:{2}", new Object[]{rmcp.getPackageName(), rmcp.getAvailability(), rmcp.isShowInTable()});
+        return rmcp;
+    }
+
+    private McPackage getLatestMcPackage(McPackage mcPackage, boolean greater) {
+        McPackage p = new McPackage();
+        List<DBMcReleases> dbmcrList = MainController.getInstance().getDBMcReleasesByPackageName(mcPackage.getName());
+        if (dbmcrList == null || dbmcrList.isEmpty()) {
+            System.out.println("################DBMCR List is empty. Package " + mcPackage.getName() + " not found!!!" );
+            return p;
+        }
+        for (DBMcReleases dbmcr : dbmcrList) {
+            for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
+                if (dbmca.getMcVersion().equalsIgnoreCase(mcPackage.getMcVersion())
+                        /**
+                         * check availability *
+                         */
+                        && greater) {
+                    p = getMcPackageFromDBMcReleases(MainController.getInstance().getLatestVersion(dbmca).getReleaseId());
+                } else if (dbmca.getMcVersion().equalsIgnoreCase(mcPackage.getMcVersion())
+                        /**
+                         * check availability *
+                         */
+                        && greater) {
+                    p = getMcPackageFromDBMcReleases(MainController.getInstance().getDBMcReleasesByNameVersion(mcPackage.getName(), mcPackage.getPackageVersion()));
                 }
             }
         }
-        LOGGER.log(Level.INFO, "Greater=" + greater + ". For " + mcPackage.getName() + "-" + mcPackage.getPackageVersion() + " -> " + m.getName() + "-" + m.getPackageVersion());
-        return m;
+
+        return p;
     }
 
+    private McPackage getRecommendedMcPackage(McPackage mcPackage) {
+        DBMcReleases dbmcr = MainController.getInstance().getRecommendedMcRelease(mcPackage.getName(), mcPackage.getMcVersion());
+        if (dbmcr != null) {
+            return getMcPackageFromDBMcReleases(dbmcr);
+        } else {
+            return new McPackage();
+        }
+    }
+
+    @Override
     public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages) {
         HashSet<McPackage> mcPackgesWithDependencies = new HashSet<>(mcPackages);
-        for (McPackage p : mcPackages) {
-            if (!p.isDependencySolved()) {
-                mcPackgesWithDependencies.remove(p);
+        for (McPackage p : mcPackages) {            
+            if (!p.isDependencySolved() && p.isAddToRepository()) {
                 LOGGER.log(Level.INFO, "Solving dependencies for: {0}-{1}!", new Object[]{p.getName(), p.getPackageVersion()});
-                HashSet<McPackage> dependencies = getDependencies(p);
+                HashSet<McPackage> dependencies = getDependencies(p, filter);
                 LOGGER.log(Level.INFO, p.getName() + " have " + dependencies.size() + " dependencies!");
                 p.setDependencies(dependencies);
                 p.setDependencySolved(true);
                 LOGGER.log(Level.INFO, "Dependency solved for: {0}-{1}!", new Object[]{p.getName(), p.getPackageVersion()});
+                dependencies.stream().forEach((dep) -> {
+                    HashSet<McPackage> dependencyFor = dep.getDependencyFor();
+                    dependencyFor.add(p);
+                    dep.setDependencyFor(dependencyFor);
+                    dep.setAddToRepository(true);
+                });
                 mcPackgesWithDependencies.add(p);
 
                 for (McPackage pDependency : dependencies) {
                     mcPackgesWithDependencies.add(pDependency);
-                    mcPackgesWithDependencies = solveDependencies(mcPackgesWithDependencies);
                 }
+                mcPackgesWithDependencies = solveDependencies(mcPackgesWithDependencies);
             }
 
         }
         return mcPackgesWithDependencies;
+    }
+
+    @Override
+    public ArrayList<RecommendedMcPackage> getPackageListForReleaseManagement() {
+        Set<RecommendedMcPackage> packagesList = new HashSet<>();
+        HashSet<DBMcReleases> dbMcReleases = MainController.getInstance().getPackages(mcVersion);
+        for (DBMcReleases release : dbMcReleases) {
+            RecommendedMcPackage p = getRecommendedMcPackageFromDBMcReleases(release);
+            if (p.getPackageName() != null) {
+                if (packagesList.contains(p) && p.isShowInTable()) {
+                    packagesList.remove(p);
+                    packagesList.add(p);
+                } else if (!packagesList.contains(p)) {
+                    packagesList.add(p);
+                }
+            }
+
+        }
+        LOGGER.log(Level.INFO, "Returning " + packagesList.size() + " packages for RSS!");
+        packagesList.stream().distinct().collect(Collectors.toList());
+
+        return new ArrayList<>(packagesList);
     }
 }

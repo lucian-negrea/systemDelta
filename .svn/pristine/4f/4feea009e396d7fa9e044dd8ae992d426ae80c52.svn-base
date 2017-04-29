@@ -1,0 +1,166 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.packageinfoparser;
+
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Iterator;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
+import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
+import com.anritsu.mcrepositorymanager.utils.Configuration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ *
+ * @author RO100051
+ */
+public class RSSParser implements PackageInfoParser{
+    
+    private static final Logger LOGGER = Logger.getLogger(RSSParser.class.getName());
+    public final String FOLDER_PATH = Configuration.getInstance().getRssFilesPath() + "/";
+    private String filePath;
+    private String mcVersion;
+    private HashSet<McPackage> packageList = new HashSet<>();
+    private HashSet<String> customers = new HashSet<>();
+    private HashSet<String> availability = new HashSet<>();
+    
+    public RSSParser(Filter filter) {
+        mcVersion = filter.getMcVersion();
+        this.filePath = FOLDER_PATH + "MC-" + mcVersion + "-ReleaseStatus.xlsx";
+        LOGGER.log(Level.INFO, "Path: " + filePath);
+        parseRSS();
+    }
+
+    @Override
+    public HashSet<McPackage> getPackageList(Filter filter) {
+        
+        HashSet<McPackage> filteredPackageList = new HashSet<>();
+        ApplyFilter applyFilter = new ApplyFilter(filter);
+        for(McPackage p: packageList){
+            if((applyFilter.isMcPackageMatchAvailabilityFilter(p) && 
+                    applyFilter.isMcPackageMatchCustomerFilter(p) && 
+                    applyFilter.isMcPackageMatchMcComponentFilter(p) &&
+                    applyFilter.isMcPackageMatchQ7admOutput(p))){
+                filteredPackageList.add(p);
+            }
+        }
+        return filteredPackageList;
+    }
+
+    public void setPackageList(HashSet<McPackage> packageList) {
+        this.packageList = packageList;
+    }
+
+    public String getMcVersion() {
+        return mcVersion;
+    }
+
+    @Override
+    public HashSet<String> getCustomers() {
+        return customers;
+    }
+
+    @Override
+    public HashSet<String> getAvailability() {
+        return availability;
+    }
+    
+    public void parseRSS() {
+        try {
+            FileInputStream file = new FileInputStream(new File(this.filePath));
+
+            //Create Workbook instance holding reference to .xlsx file
+            XSSFWorkbook workbook = new XSSFWorkbook(file);
+
+            //Get package list sheet from the workbook
+            String sheetName = "MC " + mcVersion;
+            XSSFSheet sheet = workbook.getSheet(sheetName);
+
+            //Iterate through each rows one by one
+            Iterator<Row> rowIterator = sheet.iterator();
+            while (rowIterator.hasNext()) {
+                Row row = rowIterator.next();
+                if (row.getRowNum() < 3) {
+                    continue;
+                }
+                McPackage p = new McPackage();
+                p.setMcVersion(mcVersion);
+                p.setName(row.getCell(2).getStringCellValue());
+                HashSet<String> downloadLinks = new HashSet<>();
+                try {
+                    String link = row.getCell(7).getHyperlink().getAddress();
+                    downloadLinks.add(link);
+                    int urlIndex = link.split("/").length;
+                    String fileName = link.split("/")[urlIndex - 1];
+                    p.setFileName(fileName);
+                } catch (NullPointerException exp) {
+                    exp.printStackTrace();
+                }finally{
+                    p.setDownloadLinks(downloadLinks);
+                }
+                
+                p.setPackageVersion(row.getCell(3).getStringCellValue());
+                p.setAvailability(row.getCell(4).getStringCellValue());
+                availability.add(row.getCell(4).getStringCellValue());
+
+                // Set customers list
+                ArrayList<String> cusList = new ArrayList<>();
+                String[] customerCell = row.getCell(5).getStringCellValue().split(",");
+                for (int i = 0; i < customerCell.length; i++) {
+                    customers.add(customerCell[i]);
+                    cusList = new ArrayList<>(Arrays.asList(customerCell));  
+                }
+                //System.out.println("Parsing line " + row.getRowNum());
+                LOGGER.log(Level.INFO, "Parsing " + this.filePath + "/"+ row.getRowNum());
+
+                p.setCustomerList(new HashSet<>(cusList));
+                packageList.add(p);
+            }
+            file.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public HashSet<String> getPackageNameList() {
+        HashSet<String> packagesNameList = new HashSet<>();
+        for(McPackage p: packageList){
+            packagesNameList.add(p.getName());
+        }
+        return packagesNameList;
+    }
+
+    @Override
+    public String getMCVersion() {
+        return mcVersion;
+    }
+
+    @Override
+    public HashSet<MCPackageActivities> getActivities() {
+        return new HashSet<>();
+    }    
+
+    @Override
+    public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public ArrayList<RecommendedMcPackage> getPackageListForReleaseManagement() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+}

@@ -1,0 +1,262 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.dbbeans;
+
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Date;
+import javax.persistence.Basic;
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+
+/**
+ *
+ * @author ro100051
+ */
+@Entity
+@Table(name = "mc_releases")
+@XmlRootElement
+@NamedQueries({
+    @NamedQuery(name = "DBMcReleases.findAll", query = "SELECT d FROM DBMcReleases d"),
+    @NamedQuery(name = "DBMcReleases.findByReleaseId", query = "SELECT d FROM DBMcReleases d WHERE d.releaseId = :releaseId"),
+    @NamedQuery(name = "DBMcReleases.findByReleaseType", query = "SELECT d FROM DBMcReleases d WHERE d.releaseType = :releaseType"),
+    @NamedQuery(name = "DBMcReleases.findByReleaseDate", query = "SELECT d FROM DBMcReleases d WHERE d.releaseDate = :releaseDate"),
+    @NamedQuery(name = "DBMcReleases.findByReleaser", query = "SELECT d FROM DBMcReleases d WHERE d.releaser = :releaser"),
+    @NamedQuery(name = "DBMcReleases.findByReleaserEmail", query = "SELECT d FROM DBMcReleases d WHERE d.releaserEmail = :releaserEmail"),
+    @NamedQuery(name = "DBMcReleases.findByComponentName", query = "SELECT d FROM DBMcReleases d WHERE d.componentName = :componentName"),
+    @NamedQuery(name = "DBMcReleases.findByComponentNameComponentVersion", query = "SELECT d FROM DBMcReleases d WHERE d.componentName = :componentName and d.componentVersion = :componentVersion"),
+    @NamedQuery(name = "DBMcReleases.findByComponentVersion", query = "SELECT d FROM DBMcReleases d WHERE d.componentVersion = :componentVersion"),
+    @NamedQuery(name = "DBMcReleases.findByComponentType", query = "SELECT d FROM DBMcReleases d WHERE d.componentType = :componentType"),
+    @NamedQuery(name = "DBMcReleases.findByComponentTier", query = "SELECT d FROM DBMcReleases d WHERE d.componentTier = :componentTier"),
+    @NamedQuery(name = "DBMcReleases.findByComponentRole", query = "SELECT d FROM DBMcReleases d WHERE d.componentRole = :componentRole")})
+public class DBMcReleases implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Basic(optional = false)
+    @Column(name = "release_id")
+    private Integer releaseId;
+    @Basic(optional = false)
+    @Column(name = "release_type")
+    private String releaseType;
+    @Basic(optional = false)
+    @Column(name = "release_date")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date releaseDate;
+    @Basic(optional = false)
+    @Column(name = "releaser")
+    private String releaser;
+    @Basic(optional = false)
+    @Column(name = "releaser_email")
+    private String releaserEmail;
+    @Basic(optional = false)
+    @Column(name = "component_name")
+    private String componentName;
+    @Basic(optional = false)
+    @Column(name = "component_version")
+    private String componentVersion;
+    @Basic(optional = false)
+    @Column(name = "component_type")
+    private String componentType;
+    @Basic(optional = false)
+    @Column(name = "component_tier")
+    private String componentTier;
+    @Basic(optional = false)
+    @Column(name = "component_group")
+    private String componentGroup;
+    @Column(name = "component_role")
+    private String componentRole;
+    @Column(name = "release_note")
+    private String releaseNote;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "releaseId")
+    private Collection<DBMcActivities> dBMcActivitiesCollection;
+    @OneToMany(mappedBy = "releaseId")
+    private Collection<DBMcItemsReleased> dBMcItemsReleasedCollection;
+    @OneToMany(mappedBy = "releaseId")
+    private Collection<DBMcAvailabilities> dBMcAvailabilitiesCollection;
+
+    public DBMcReleases() {
+    }
+
+    public DBMcReleases(Integer releaseId) {
+        this.releaseId = releaseId;
+    }
+
+    public DBMcReleases(Integer releaseId, String releaseType, Date releaseDate, String releaser, String releaserEmail, String componentName, String componentVersion, String componentType, String componentTier, String releaseNote, String risk) {
+        this.releaseId = releaseId;
+        this.releaseType = releaseType;
+        this.releaseDate = releaseDate;
+        this.releaser = releaser;
+        this.releaserEmail = releaserEmail;
+        this.componentName = componentName;
+        this.componentVersion = componentVersion;
+        this.componentType = componentType;
+        this.componentTier = componentTier;
+        this.releaseNote = releaseNote;
+    }
+
+    public String getReleaseNote() {
+        return releaseNote;
+    }
+
+    public void setReleaseNote(String releaseNote) {
+        this.releaseNote = releaseNote;
+    }
+
+    public String getComponentGroup() {
+        return componentGroup;
+    }
+
+    public void setComponentGroup(String componentGroup) {
+        this.componentGroup = componentGroup;
+    }
+
+    public Integer getReleaseId() {
+        return releaseId;
+    }
+
+    public void setReleaseId(Integer releaseId) {
+        this.releaseId = releaseId;
+    }
+
+    public String getReleaseType() {
+        return releaseType;
+    }
+
+    public void setReleaseType(String releaseType) {
+        this.releaseType = releaseType;
+    }
+
+    public Date getReleaseDate() {
+        return releaseDate;
+    }
+
+    public void setReleaseDate(Date releaseDate) {
+        this.releaseDate = releaseDate;
+    }
+
+    public String getReleaser() {
+        return releaser;
+    }
+
+    public void setReleaser(String releaser) {
+        this.releaser = releaser;
+    }
+
+    public String getReleaserEmail() {
+        return releaserEmail;
+    }
+
+    public void setReleaserEmail(String releaserEmail) {
+        this.releaserEmail = releaserEmail;
+    }
+
+    public String getComponentName() {
+        return componentName;
+    }
+
+    public void setComponentName(String componentName) {
+        this.componentName = componentName;
+    }
+
+    public String getComponentVersion() {
+        return componentVersion;
+    }
+
+    public void setComponentVersion(String componentVersion) {
+        this.componentVersion = componentVersion;
+    }
+
+    public String getComponentType() {
+        return componentType;
+    }
+
+    public void setComponentType(String componentType) {
+        this.componentType = componentType;
+    }
+
+    public String getComponentTier() {
+        return componentTier;
+    }
+
+    public void setComponentTier(String componentTier) {
+        this.componentTier = componentTier;
+    }
+
+    public String getComponentRole() {
+        return componentRole;
+    }
+
+    public void setComponentRole(String componentRole) {
+        this.componentRole = componentRole;
+    }
+
+    @XmlTransient
+    public Collection<DBMcActivities> getDBMcActivitiesCollection() {
+        return dBMcActivitiesCollection;
+    }
+
+    public void setDBMcActivitiesCollection(Collection<DBMcActivities> dBMcActivitiesCollection) {
+        this.dBMcActivitiesCollection = dBMcActivitiesCollection;
+    }
+
+    @XmlTransient
+    public Collection<DBMcItemsReleased> getDBMcItemsReleasedCollection() {
+        return dBMcItemsReleasedCollection;
+    }
+
+    public void setDBMcItemsReleasedCollection(Collection<DBMcItemsReleased> dBMcItemsReleasedCollection) {
+        this.dBMcItemsReleasedCollection = dBMcItemsReleasedCollection;
+    }
+
+    @XmlTransient
+    public Collection<DBMcAvailabilities> getDBMcAvailabilitiesCollection() {
+        return dBMcAvailabilitiesCollection;
+    }
+
+    public void setDBMcAvailabilitiesCollection(Collection<DBMcAvailabilities> dBMcAvailabilitiesCollection) {
+        this.dBMcAvailabilitiesCollection = dBMcAvailabilitiesCollection;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 0;
+        hash += (releaseId != null ? releaseId.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        // TODO: Warning - this method won't work in the case the id fields are not set
+        if (!(object instanceof DBMcReleases)) {
+            return false;
+        }
+        DBMcReleases other = (DBMcReleases) object;
+        if ((this.releaseId == null && other.releaseId != null) || (this.releaseId != null && !this.releaseId.equals(other.releaseId))) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "com.anritsu.mcreleaseportal.dbconnection.dbconnection.beans.DBMcReleases[ releaseId=" + releaseId + " ]";
+    }
+    
+}

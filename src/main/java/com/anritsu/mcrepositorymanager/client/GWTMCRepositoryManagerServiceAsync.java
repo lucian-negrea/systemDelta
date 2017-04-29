@@ -9,8 +9,10 @@ import com.anritsu.mcrepositorymanager.shared.Filter;
 import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -37,6 +39,25 @@ public interface GWTMCRepositoryManagerServiceAsync {
     public void initiateParser(Filter filter, AsyncCallback<java.lang.Boolean> asyncCallback);
 
     public void getMCBaselineAttributes(AsyncCallback<MCBaselineAttributes> asyncCallback);
+
+    public void solveDependencies(HashSet<McPackage> mcPackages, AsyncCallback<HashSet<McPackage>> asyncCallback);
+
+    public void authenticate(String password, AsyncCallback<java.lang.Boolean> asyncCallback);
+
+    public void isAuthenticated(AsyncCallback<java.lang.Boolean> asyncCallback);
+
+    public void getPackageListForReleaseManagement(AsyncCallback<ArrayList<RecommendedMcPackage>> asyncCallback);
+
+    public void updateRecommendedVersion(RecommendedMcPackage mcPackage, AsyncCallback<RecommendedMcPackage> asyncCallback);
+
+    public void removeFromTable(RecommendedMcPackage mcPackage, AsyncCallback<RecommendedMcPackage> asyncCallback);
+
+    public void generateRSS(HashSet<RecommendedMcPackage> mcPackages, AsyncCallback<String> asyncCallback);
+
+    public void getSourceXLS(AsyncCallback<String> asyncCallback);
+
+    public void getSourceDB(AsyncCallback<String> asyncCallback);
+
 
    
     

@@ -1,0 +1,17 @@
+[pack]
+	buildbitmaps = false
+[core]
+	symlinks = false
+	repositoryformatversion = 0
+	filemode = false
+	logallrefupdates = true
+	bare = false
+[remote "origin"]
+	url = https://negrea.lucian%40gmail.com@github.com/lucian-negrea/systemDelta.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+[user]
+	name = ro100051
+	email = ro100051@LUT-3VC7KX1.main.intgin.net

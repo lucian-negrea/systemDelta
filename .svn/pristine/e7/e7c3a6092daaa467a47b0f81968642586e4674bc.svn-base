@@ -1,0 +1,311 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.shared;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Objects;
+
+/**
+ *
+ * @author RO100051
+ */
+public class McPackage implements Serializable, Comparable<McPackage> {
+
+    // This object is build with the info collected from RSS file or changesDB
+    private String tier;
+    private String group;    
+    private String name;
+    private String fileName;
+    private String packageVersion;
+    private String availability;
+    private HashSet<String> downloadLinks = new HashSet();
+    private String mcVersion;
+    private HashSet<String> customerList = new HashSet<>();
+    private boolean addToRepository = true;
+    private String q7admOutputVersion = "";
+    private long packageSize;
+    private boolean mcPackageSuitableForDownload = false;
+    private boolean dependency;
+    private boolean dependencySolved = false;
+    private long packageDownloadedSize = 0;
+    private HashSet<McPackage> dependencies = new HashSet<>();
+    private HashSet<McPackage> dependencyFor = new HashSet();
+    private HashSet<MCPackageActivities> activities = new HashSet<>();
+    private boolean matchFilter = false;   
+    private boolean recommended, latest = false;
+    private String notes = "";
+    private Date releaseDate;
+    private String risk="";
+    private String releaseNote ="";
+    private boolean lessRecommended = false;
+
+    public boolean isLessRecommended() {
+        return lessRecommended;
+    }
+
+    public void setLessRecommended(boolean lessRecommended) {
+        this.lessRecommended = lessRecommended;
+    }
+
+    public String getReleaseNote() {
+        return releaseNote;
+    }
+
+    public void setReleaseNote(String releaseNote) {
+        this.releaseNote = releaseNote;
+    }
+
+    public String getRisk() {
+        return risk;
+    }
+
+    public void setRisk(String risk) {
+        this.risk = risk;
+    }
+
+    public Date getReleaseDate() {
+        return releaseDate;
+    }
+
+    public void setReleaseDate(Date releaseDate) {
+        this.releaseDate = releaseDate;
+    }
+
+    public HashSet<String> getDownloadLinks() {
+        return downloadLinks;
+    }
+
+    public void setDownloadLinks(HashSet<String> downloadLinks) {
+        this.downloadLinks = downloadLinks;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public boolean isLatest() {
+        return latest;
+    }
+
+    public void setLatest(boolean latest) {
+        this.latest = latest;
+    }
+
+    public boolean isRecommended() {
+        return recommended;
+    }
+
+    public void setRecommended(boolean recommended) {
+        this.recommended = recommended;
+    }
+    
+    
+    public String getTier() {
+        return tier;
+    }
+
+    public void setTier(String tier) {
+        this.tier = tier;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }   
+    
+    public HashSet<McPackage> getDependencyFor() {
+        return dependencyFor;
+    }
+
+    public void setDependencyFor(HashSet<McPackage> dependencyFor) {
+        this.dependencyFor = dependencyFor;
+    }
+
+    
+    
+    public boolean isMatchFilter() {
+        return matchFilter;
+    }
+
+    public void setMatchFilter(boolean matchFilter) {
+        this.matchFilter = matchFilter;
+    }
+    
+    public HashSet<MCPackageActivities> getActivities() {
+        return activities;
+    }
+
+    public void setActivities(HashSet<MCPackageActivities> activities) {
+        this.activities = activities;
+    }
+    
+    public boolean isDependencySolved() {
+        return dependencySolved;
+    }
+
+    public void setDependencySolved(boolean dependencySolved) {
+        this.dependencySolved = dependencySolved;
+    }
+    
+    public boolean isDependency() {
+        return dependency;
+    }
+
+    public void setDependency(boolean dependency) {
+        this.dependency = dependency;
+    }
+
+    public HashSet<McPackage> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(HashSet<McPackage> dependencies) {
+        this.dependencies = dependencies;
+    }
+
+    public long getPackageDownloadedSize() {
+        return packageDownloadedSize;
+    }
+
+    public void setPackageDownloadedSize(long packageDownloadedSize) {
+        this.packageDownloadedSize = packageDownloadedSize;
+    }
+
+    public boolean isMcPackageSuitableForDownload() {
+//        Integer pVersion = Integer.parseInt(this.getPackageVersion().replace(".", "").replace("-", ""));
+//        Integer pQ7admOutputVersion = 0;
+//        try {
+//            pQ7admOutputVersion = Integer.parseInt(this.getQ7admOutputVersion().replace(".", "").replace("-", ""));
+//        } catch (Exception exp) {
+//            pQ7admOutputVersion = 0;
+//        }
+//        return pQ7admOutputVersion != 0 && pVersion > pQ7admOutputVersion;
+    return mcPackageSuitableForDownload;
+    }
+
+    public void setMcPackageSuitableForDownload(boolean mcPackageSuitableForDownload) {
+        this.mcPackageSuitableForDownload = mcPackageSuitableForDownload;
+    }
+
+    public long getPackageSize() {
+        return packageSize;
+    }
+
+    public void setPackageSize(long packageSize) {
+        this.packageSize = packageSize;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getQ7admOutputVersion() {
+        return q7admOutputVersion;
+    }
+
+    public void setQ7admOutputVersion(String q7admOutputVersion) {
+        this.q7admOutputVersion = q7admOutputVersion;
+    }
+
+    public boolean isAddToRepository() {
+        return addToRepository;
+    }
+
+    public void setAddToRepository(boolean addToRepository) {
+        this.addToRepository = addToRepository;
+    }
+
+    public String getMcVersion() {
+        return mcVersion;
+    }
+
+    public void setMcVersion(String mcVersion) {
+        this.mcVersion = mcVersion;
+    }
+
+    public HashSet<String> getCustomerList() {
+        return customerList;
+    }
+
+    public void setCustomerList(HashSet<String> customerList) {
+        this.customerList = customerList;
+    }
+
+    public McPackage() {
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 23 * hash + Objects.hashCode(this.name);
+        hash = 23 * hash + Objects.hashCode(this.packageVersion);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final McPackage other = (McPackage) obj;
+        if (!Objects.equals(this.name, other.name)) {
+            return false;
+        }
+        if (!Objects.equals(this.packageVersion, other.packageVersion)) {
+            return false;
+        }
+        return true;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getPackageVersion() {
+        return packageVersion;
+    }
+
+    public void setPackageVersion(String packageVersion) {
+        this.packageVersion = packageVersion;
+    }
+
+    public String getAvailability() {
+        return availability;
+    }
+
+    public void setAvailability(String availability) {
+        this.availability = availability;
+    }
+
+    @Override
+    public int compareTo(McPackage t) {
+        return (this.getName().toLowerCase().compareTo(t.getName().toLowerCase()));
+    }
+
+}

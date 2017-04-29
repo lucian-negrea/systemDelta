@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.packageinfoparser;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Iterator;
@@ -13,12 +14,15 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
 import com.anritsu.mcrepositorymanager.utils.ApplyFilter;
+import com.anritsu.mcrepositorymanager.utils.Configuration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 
 /**
  *
@@ -27,7 +31,7 @@ import java.util.logging.Logger;
 public class RSSParser implements PackageInfoParser{
     
     private static final Logger LOGGER = Logger.getLogger(RSSParser.class.getName());
-    public final static String FOLDER_PATH = "./";
+    public final String FOLDER_PATH = Configuration.getInstance().getRssFilesPath() + "/";
     private String filePath;
     private String mcVersion;
     private HashSet<McPackage> packageList = new HashSet<>();
@@ -43,13 +47,26 @@ public class RSSParser implements PackageInfoParser{
 
     @Override
     public HashSet<McPackage> getPackageList(Filter filter) {
-        ApplyFilter applyFilter = new ApplyFilter(filter);
+        
         HashSet<McPackage> filteredPackageList = new HashSet<>();
+        ApplyFilter applyFilter = new ApplyFilter(filter);
         for(McPackage p: packageList){
             if((applyFilter.isMcPackageMatchAvailabilityFilter(p) && 
                     applyFilter.isMcPackageMatchCustomerFilter(p) && 
                     applyFilter.isMcPackageMatchMcComponentFilter(p) &&
                     applyFilter.isMcPackageMatchQ7admOutput(p))){
+                try {
+                        DefaultArtifactVersion packageVersion = new DefaultArtifactVersion(p.getPackageVersion().split("-")[0]);
+                        DefaultArtifactVersion pacakgeQ7admOutpuVersion = new DefaultArtifactVersion(p.getQ7admOutputVersion().split("-")[0]);
+
+                        if (packageVersion.compareTo(pacakgeQ7admOutpuVersion) > 0) {
+                            p.setMcPackageSuitableForDownload(true);
+                        } else {
+                            p.setMcPackageSuitableForDownload(false);
+                        }
+                    }catch(Exception exp){
+                        p.setMcPackageSuitableForDownload(true);
+                    }
                 filteredPackageList.add(p);
             }
         }
@@ -95,13 +112,17 @@ public class RSSParser implements PackageInfoParser{
                 McPackage p = new McPackage();
                 p.setMcVersion(mcVersion);
                 p.setName(row.getCell(2).getStringCellValue());
+                HashSet<String> downloadLinks = new HashSet<>();
                 try {
-                    p.setDownloadLink(row.getCell(7).getHyperlink().getAddress());
-                    int urlIndex = p.getDownloadLink().split("/").length;
-                    String fileName = p.getDownloadLink().split("/")[urlIndex - 1];
+                    String link = row.getCell(7).getHyperlink().getAddress();
+                    downloadLinks.add(link);
+                    int urlIndex = link.split("/").length;
+                    String fileName = link.split("/")[urlIndex - 1];
                     p.setFileName(fileName);
                 } catch (NullPointerException exp) {
-                    p.setDownloadLink("");
+                    exp.printStackTrace();
+                }finally{
+                    p.setDownloadLinks(downloadLinks);
                 }
                 
                 p.setPackageVersion(row.getCell(3).getStringCellValue());
@@ -141,5 +162,18 @@ public class RSSParser implements PackageInfoParser{
         return mcVersion;
     }
 
-    
+    @Override
+    public HashSet<MCPackageActivities> getActivities() {
+        return new HashSet<>();
+    }    
+
+    @Override
+    public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public ArrayList<RecommendedMcPackage> getPackageListForReleaseManagement() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }

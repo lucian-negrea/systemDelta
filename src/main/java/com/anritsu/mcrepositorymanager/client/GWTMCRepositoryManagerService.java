@@ -9,9 +9,11 @@ import com.anritsu.mcrepositorymanager.shared.Filter;
 import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -26,14 +28,22 @@ public interface GWTMCRepositoryManagerService extends RemoteService {
         
 //    public ArrayList<String> getAvailabilities(Filter filter);
 //    public ArrayList<String> getCustomers(Filter filter);
-//    public ArrayList<String> getMcComponents(Filter filter);
-//    
+//    public ArrayList<String> getMcComponents(Filter filter); 
     
     public ArrayList<McPackage> getPackageList(Filter filter);
     public String generateRepository(ArrayList<McPackage> packages);
     public List<String> getMcVersions();
     public PackingStatus getPackingStatus();
-    
+    public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages);
+    public boolean authenticate(String password);
+    public boolean isAuthenticated();
+    //public ArrayList<McPackage> getPackageListForReleaseManagement();
+    public ArrayList<RecommendedMcPackage> getPackageListForReleaseManagement();
+    public RecommendedMcPackage updateRecommendedVersion(RecommendedMcPackage mcPackage);
+    public RecommendedMcPackage removeFromTable(RecommendedMcPackage mcPackage);
+    public String generateRSS(HashSet<RecommendedMcPackage> mcPackages);
+    public String getSourceXLS();
+    public String getSourceDB();
     
     
 }

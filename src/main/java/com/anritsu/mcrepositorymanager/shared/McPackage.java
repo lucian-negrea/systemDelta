@@ -6,6 +6,7 @@
 package com.anritsu.mcrepositorymanager.shared;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 
@@ -16,22 +17,140 @@ import java.util.Objects;
 public class McPackage implements Serializable, Comparable<McPackage> {
 
     // This object is build with the info collected from RSS file or changesDB
+    private String tier;
+    private String group;    
     private String name;
     private String fileName;
     private String packageVersion;
     private String availability;
-    private String downloadLink;
+    private HashSet<String> downloadLinks = new HashSet();
     private String mcVersion;
-    private HashSet<String> customerList;
+    private HashSet<String> customerList = new HashSet<>();
     private boolean addToRepository = true;
-    private String q7admOutputVersion;
+    private String q7admOutputVersion = "";
     private long packageSize;
-    private boolean mcPackageSuitableForDownload = true;
+    private boolean mcPackageSuitableForDownload = false;
     private boolean dependency;
     private boolean dependencySolved = false;
     private long packageDownloadedSize = 0;
-    private HashSet<McPackage> dependencies;
+    private HashSet<McPackage> dependencies = new HashSet<>();
+    private HashSet<McPackage> dependencyFor = new HashSet();
+    private HashSet<MCPackageActivities> activities = new HashSet<>();
+    private boolean matchFilter = false;   
+    private boolean recommended, latest = false;
+    private String notes = "";
+    private Date releaseDate;
+    private String risk="";
+    private String releaseNote ="";
+    private boolean lessRecommended = false;
 
+    public boolean isLessRecommended() {
+        return lessRecommended;
+    }
+
+    public void setLessRecommended(boolean lessRecommended) {
+        this.lessRecommended = lessRecommended;
+    }
+
+    public String getReleaseNote() {
+        return releaseNote;
+    }
+
+    public void setReleaseNote(String releaseNote) {
+        this.releaseNote = releaseNote;
+    }
+
+    public String getRisk() {
+        return risk;
+    }
+
+    public void setRisk(String risk) {
+        this.risk = risk;
+    }
+
+    public Date getReleaseDate() {
+        return releaseDate;
+    }
+
+    public void setReleaseDate(Date releaseDate) {
+        this.releaseDate = releaseDate;
+    }
+
+    public HashSet<String> getDownloadLinks() {
+        return downloadLinks;
+    }
+
+    public void setDownloadLinks(HashSet<String> downloadLinks) {
+        this.downloadLinks = downloadLinks;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public boolean isLatest() {
+        return latest;
+    }
+
+    public void setLatest(boolean latest) {
+        this.latest = latest;
+    }
+
+    public boolean isRecommended() {
+        return recommended;
+    }
+
+    public void setRecommended(boolean recommended) {
+        this.recommended = recommended;
+    }
+    
+    
+    public String getTier() {
+        return tier;
+    }
+
+    public void setTier(String tier) {
+        this.tier = tier;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }   
+    
+    public HashSet<McPackage> getDependencyFor() {
+        return dependencyFor;
+    }
+
+    public void setDependencyFor(HashSet<McPackage> dependencyFor) {
+        this.dependencyFor = dependencyFor;
+    }
+
+    
+    
+    public boolean isMatchFilter() {
+        return matchFilter;
+    }
+
+    public void setMatchFilter(boolean matchFilter) {
+        this.matchFilter = matchFilter;
+    }
+    
+    public HashSet<MCPackageActivities> getActivities() {
+        return activities;
+    }
+
+    public void setActivities(HashSet<MCPackageActivities> activities) {
+        this.activities = activities;
+    }
+    
     public boolean isDependencySolved() {
         return dependencySolved;
     }
@@ -64,24 +183,16 @@ public class McPackage implements Serializable, Comparable<McPackage> {
         this.packageDownloadedSize = packageDownloadedSize;
     }
 
-    public String getDownloadLink() {
-        return downloadLink;
-    }
-
-    public void setDownloadLink(String downloadLink) {
-        this.downloadLink = downloadLink;
-    }
-
     public boolean isMcPackageSuitableForDownload() {
-        Integer pVersion = Integer.parseInt(this.getPackageVersion().replace(".", "").replace("-", ""));
-        Integer pQ7admOutputVersion;
-        try {
-            pQ7admOutputVersion = Integer.parseInt(this.getQ7admOutputVersion().replace(".", "").replace("-", ""));
-        } catch (Exception exp) {
-            pQ7admOutputVersion = 0;
-        }
-
-        return pQ7admOutputVersion != 0 && pVersion > pQ7admOutputVersion;
+//        Integer pVersion = Integer.parseInt(this.getPackageVersion().replace(".", "").replace("-", ""));
+//        Integer pQ7admOutputVersion = 0;
+//        try {
+//            pQ7admOutputVersion = Integer.parseInt(this.getQ7admOutputVersion().replace(".", "").replace("-", ""));
+//        } catch (Exception exp) {
+//            pQ7admOutputVersion = 0;
+//        }
+//        return pQ7admOutputVersion != 0 && pVersion > pQ7admOutputVersion;
+    return mcPackageSuitableForDownload;
     }
 
     public void setMcPackageSuitableForDownload(boolean mcPackageSuitableForDownload) {

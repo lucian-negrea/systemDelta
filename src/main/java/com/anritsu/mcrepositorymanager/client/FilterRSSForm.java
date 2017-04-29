@@ -25,8 +25,10 @@ import com.google.gwt.user.cellview.client.TextColumn;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.view.client.ListDataProvider;
@@ -42,6 +44,7 @@ import org.gwtbootstrap3.client.ui.TextArea;
 import org.gwtbootstrap3.client.ui.gwt.ButtonCell;
 import org.gwtbootstrap3.client.ui.gwt.CellTable;
 import org.gwtbootstrap3.extras.notify.client.ui.Notify;
+import org.gwtbootstrap3.extras.notify.client.ui.NotifySettings;
 import org.gwtbootstrap3.extras.select.client.ui.Option;
 import org.gwtbootstrap3.extras.select.client.ui.Select;
 
@@ -90,6 +93,9 @@ public class FilterRSSForm extends Composite {
     @UiField
     ProgressBar totalProgressBar;
 
+    @UiField
+    Button repositoryDownloadLink;
+
     private ListDataProvider<McPackage> dataProvider;
     private Filter f = new Filter();
     private Timer t;
@@ -103,20 +109,20 @@ public class FilterRSSForm extends Composite {
     public FilterRSSForm(String mcVersion) {
         this.mcVersion = mcVersion;
         initWidget(uiBinder.createAndBindUi(this));
-        
+
         f.setMcVersion(mcVersion);
-        
+
         // Initiate PackageInfoParser with selected MC version
         getService().initiateParser(f, initiateParserCallback);
-        
-        // Get mcBaselineAttributes
-        getService().getMCBaselineAttributes(getMCBaselinesAttributesCallback);
 
+        // Get mcBaselineAttributes
+        // getService().getMCBaselineAttributes(getMCBaselinesAttributesCallback);
         changeMCVersion.setWidth("25%");
         changeMCVersion.setText("MasterClaw " + mcVersion);
         filter.setEnabled(true);
 
         downloadRepositoryArchive.setVisible(false);
+        repositoryDownloadLink.setVisible(false);
 
         q7admOutput.setHeight("200px");
         q7admOutput.setPlaceholder("Please paste q7adm output");
@@ -154,6 +160,8 @@ public class FilterRSSForm extends Composite {
             public void onClick(ClickEvent event) {
                 downloadRepositoryArchive.setVisible(false);
                 downloadRepositoryArchive.setActive(false);
+                repositoryDownloadLink.setVisible(false);
+                repositoryDownloadLink.setActive(false);
                 f.setCustomer(customers.getSelectedValue());
                 f.setAvailability(availabilities.getAllSelectedValues());
                 f.setQ7admOutput(q7admOutput.getText());
@@ -167,6 +175,9 @@ public class FilterRSSForm extends Composite {
             public void onClick(ClickEvent event) {
                 downloadRepositoryArchive.setVisible(false);
                 downloadRepositoryArchive.setEnabled(false);
+                
+                repositoryDownloadLink.setVisible(false);
+                repositoryDownloadLink.setEnabled(false);
                 int downloadCount = 0;
                 ArrayList<McPackage> packageList = new ArrayList<>();
                 for (McPackage p : dataProvider.getList()) {
@@ -196,9 +207,35 @@ public class FilterRSSForm extends Composite {
             @Override
             public void onClick(ClickEvent event) {
                 Window.open("/DownloadRepoArchive?archiveName=" + downloadRepositoryArchive.getTitle(), "_parent", "location=no");
-
             }
         });
+        
+        repositoryDownloadLink.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                PopupPanel popupContext = new PopupPanel(true);
+                popupContext.setPopupPosition(event.getNativeEvent().getClientX() + Window.getScrollLeft(), event.getNativeEvent().getClientY() + Window.getScrollTop());
+                String link = Window.Location.getProtocol() + "//" + Window.Location.getHost() + "/DownloadRepoArchive?archiveName=" + downloadRepositoryArchive.getTitle();
+                Anchor anchor = new Anchor(link, link);
+                popupContext.add(anchor);
+                popupContext.show();
+            }
+        });
+
+//        repositoryDownloadLink.sinkEvents(Event.ONCONTEXTMENU);
+//        repositoryDownloadLink.addHandler(new ContextMenuHandler() {
+//            @Override
+//            public void onContextMenu(ContextMenuEvent event) {
+//                event.preventDefault();
+//                event.stopPropagation();
+//                PopupPanel popupContext = new PopupPanel(true);
+//                popupContext.setPopupPosition(event.getNativeEvent().getClientX(), event.getNativeEvent().getClientY());
+//                String link = Window.Location.getProtocol() + "//" + Window.Location.getHost() + "/DownloadRepoArchive?archiveName=" + downloadRepositoryArchive.getTitle();
+//                Anchor anchor = new Anchor(link, link);
+//                popupContext.add(anchor);
+//                popupContext.show();
+//            }
+//        }, ContextMenuEvent.getType());
 
     }
 
@@ -216,7 +253,7 @@ public class FilterRSSForm extends Composite {
             @Override
             public SafeHtml getValue(McPackage object) {
                 SafeHtmlBuilder sb = new SafeHtmlBuilder();
-                sb.appendHtmlConstant("<a href='" + object.getDownloadLink() + "'>");
+                sb.appendHtmlConstant("<a href='" + object.getDownloadLinks().iterator().next() + "'>");
                 sb.appendEscaped(object.getPackageVersion());
                 sb.appendHtmlConstant("</a>");
                 return sb.toSafeHtml();
@@ -287,7 +324,7 @@ public class FilterRSSForm extends Composite {
             }
         });
     }
-    
+
     // Initiate parser callback
     AsyncCallback<Boolean> initiateParserCallback = new AsyncCallback<Boolean>() {
         @Override
@@ -302,7 +339,7 @@ public class FilterRSSForm extends Composite {
             }
         }
     };
-    
+
     // Get mcBaselineAttributes
     AsyncCallback<MCBaselineAttributes> getMCBaselinesAttributesCallback = new AsyncCallback<MCBaselineAttributes>() {
         @Override
@@ -323,7 +360,7 @@ public class FilterRSSForm extends Composite {
             }
             availabilities.refresh();
             availabilities.setEnabled(true);
-            
+
             // Populate customers
             customers.clear();
             for (String s : result.getCustomers()) {
@@ -335,7 +372,7 @@ public class FilterRSSForm extends Composite {
             };
             customers.refresh();
             customers.setEnabled(true);
-            
+
             // Populate package name
             packagesName.clear();
             for (String s : result.getPackageNames()) {
@@ -354,17 +391,26 @@ public class FilterRSSForm extends Composite {
     AsyncCallback<String> generateRepositoryCallback = new AsyncCallback<String>() {
         @Override
         public void onFailure(Throwable caught) {
+
             Notify.notify("Package list repository could not be generated!\n" + caught.getMessage());
+
         }
 
         @Override
         public void onSuccess(String result) {
+            String downloadLink = Window.Location.getProtocol() + "//" + Window.Location.getHost() + "/DownloadRepoArchive?archiveName=" + result;
+            NotifySettings notifySettings = NotifySettings.newSettings();
+            notifySettings.setDelay(0);
             Notify.notify("Archive repository succesfully created!");
             t.cancel();
             generateModal.hide();
             downloadRepositoryArchive.setVisible(true);
             downloadRepositoryArchive.setEnabled(true);
             downloadRepositoryArchive.setTitle(result);
+            
+            repositoryDownloadLink.setVisible(true);
+            repositoryDownloadLink.setEnabled(true);
+
         }
     };
 
@@ -383,8 +429,6 @@ public class FilterRSSForm extends Composite {
             generateRepository.setEnabled(true);
         }
     };
-
- 
 
     AsyncCallback<PackingStatus> getPackingStatusCallback = new AsyncCallback<PackingStatus>() {
         @Override

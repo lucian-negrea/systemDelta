@@ -1,0 +1,279 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.dbcontroller;
+
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcActivities;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcAvailabilities;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcCustomers;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcReleases;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
+import com.anritsu.mcrepositorymanager.utils.Configuration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.ws.rs.core.Configurable;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
+
+/**
+ *
+ * @author ro100051
+ */
+public class MainController {
+
+    private static final Logger LOGGER = Logger.getLogger(MainController.class.getName());
+
+    private static MainController singleton;
+    EntityManagerFactory emf;
+
+    private DBMcReleasesJpaController dbMcReleasesJpaController;
+    private DBMcAvailabilitiesJpaController dbMcAvailabilitiesJpaController;
+    private DBMcActivitiesJpaController dbMcActivitiesJpaController;
+    private DBMcCustomersJpaController dbMcCustomersJpaController;
+    private DBMcDependenciesJpaController dbMcDependenciesJpaController;
+    private DBMcItemsReleasedJpaController dBMcItemsReleasedJpaController;
+
+    private MainController() {
+        try {
+            Map properties = new HashMap();
+            properties.put("javax.persistence.jdbc.url", "jdbc:postgresql://" + Configuration.getInstance().getDbIP() + ":5432/" + Configuration.getInstance().getDbName());
+            properties.put("javax.persistence.jdbc.driver", "org.postgresql.Driver");
+            properties.put("javax.persistence.jdbc.user", Configuration.getInstance().getDbUser());
+            properties.put("javax.persistence.jdbc.password", Configuration.getInstance().getDbPassword());
+                               
+            emf = Persistence.createEntityManagerFactory("MCRG_PU", properties);
+            dbMcReleasesJpaController = new DBMcReleasesJpaController(emf);
+            dbMcAvailabilitiesJpaController = new DBMcAvailabilitiesJpaController(emf);
+            dbMcActivitiesJpaController = new DBMcActivitiesJpaController(emf);
+            dbMcCustomersJpaController = new DBMcCustomersJpaController(emf);
+            dbMcDependenciesJpaController = new DBMcDependenciesJpaController(emf);
+            dBMcItemsReleasedJpaController = new DBMcItemsReleasedJpaController(emf);
+
+        } catch (Exception ex) {
+            Logger.getLogger(MainController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static MainController getInstance() {
+        if (singleton == null) {
+            singleton = new MainController();
+        }
+        return singleton;
+    }
+
+    public HashSet<DBMcReleases> getPackages(String mcVersion) {
+        HashSet<DBMcReleases> mcReleases = new HashSet<>();
+        for (DBMcReleases dbmcr : dbMcReleasesJpaController.findDBMcReleasesEntities()) {
+            HashSet<DBMcAvailabilities> dbmcavailabilitiesList = new HashSet<>(dbmcr.getDBMcAvailabilitiesCollection());
+            for (DBMcAvailabilities dbmcavailability : dbmcavailabilitiesList) {
+                if (dbmcavailability.getMcVersion().equals(mcVersion) && (dbmcr.getReleaseType().equalsIgnoreCase("new") || dbmcr.getReleaseType().equalsIgnoreCase("update"))) {
+                    mcReleases.add(dbmcr);
+                }
+            }
+
+        }
+        return mcReleases;
+    }
+
+    public HashSet<String> getAvailabilities(String mcVersion) {
+        HashSet<String> availabilities = new HashSet<>();
+        for (DBMcAvailabilities dbmca : dbMcAvailabilitiesJpaController.findDBMcAvailabilitiesEntities()) {
+            if (dbmca.getMcVersion().equalsIgnoreCase(mcVersion)) {
+                availabilities.add(dbmca.getAvailability());
+            }
+        }
+        return availabilities;
+    }
+
+    public List<DBMcReleases> getDBMcReleasesByPackageName(String name) {
+        return dbMcReleasesJpaController.findDBMcReleasesByName(name);
+
+    }
+
+    public TreeSet<String> getCustomers(String mcVersion) {
+        TreeSet<String> customers = new TreeSet();
+
+        for (DBMcCustomers dbmcc : dbMcCustomersJpaController.findDBMcCustomersEntities()) {
+            if (dbmcc.getAvailabilityId().getMcVersion().equalsIgnoreCase(mcVersion)) {
+
+                customers.add(dbmcc.getCustomerName());
+            }
+        }
+        return customers;
+    }
+
+    public TreeSet<String> getPackagesName(String mcVersion) {
+        TreeSet<String> packagesName = new TreeSet<>();
+        for (DBMcReleases dbmcr : dbMcReleasesJpaController.findDBMcReleasesEntities()) {
+            for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
+                if (dbmca.getMcVersion().equalsIgnoreCase(mcVersion)) {
+                    packagesName.add(dbmcr.getComponentName());
+                }
+            }
+        }
+        return packagesName;
+    }
+
+    public TreeSet<MCPackageActivities> getActivities(String mcVersion) {
+        TreeSet<MCPackageActivities> activities = new TreeSet<>();
+        for (DBMcActivities dbmcactivities : dbMcActivitiesJpaController.findDBMcActivitiesEntities()) {
+            for (DBMcAvailabilities dbmcavailabilities : dbmcactivities.getReleaseId().getDBMcAvailabilitiesCollection()) {
+                if (dbmcavailabilities.getMcVersion().equalsIgnoreCase(mcVersion) && (dbmcavailabilities.getReleaseId().getReleaseType().equalsIgnoreCase("new") || dbmcavailabilities.getReleaseId().getReleaseType().equalsIgnoreCase("update"))) {
+                    MCPackageActivities mcpa = new MCPackageActivities();
+                    mcpa.setActivityType(dbmcactivities.getActivityType());
+                    mcpa.setActivityId(String.valueOf(dbmcactivities.getActivityActivityId()));
+                    mcpa.setActivityText(dbmcactivities.getActivityText());
+                    mcpa.setReleaseId(String.valueOf(dbmcactivities.getReleaseId().getReleaseId()));
+                    activities.add(mcpa);
+                }
+            }
+        }
+        return activities;
+    }
+
+    public ArrayList<String> getMCVersions() {
+        ArrayList<String> mcAvailabilities = new ArrayList<>();
+        List<DBMcAvailabilities> dbMcAvailabilities = dbMcAvailabilitiesJpaController.findDBMcAvailabilitiesEntities();
+        for (DBMcAvailabilities dbmca : dbMcAvailabilities) {
+            mcAvailabilities.add(dbmca.getMcVersion());
+        }
+        return mcAvailabilities;
+    }
+
+    public DBMcReleases getDBMcReleasesByNameVersion(String name, String version) {
+        return dbMcReleasesJpaController.findDBMcReleasesByNameVersion(name, version);
+    }
+
+    public ArrayList<String> getpackageVersionsListForPackageAvailability(String packageName, String packageAvailability) {
+        ArrayList<String> versions = new ArrayList();
+        List<DBMcReleases> releases = dbMcReleasesJpaController.findDBMcReleasesByName(packageName);
+        for (DBMcReleases release : releases) {
+            for (DBMcAvailabilities availability : release.getDBMcAvailabilitiesCollection()) {
+                if (availability.getAvailability().equalsIgnoreCase(packageAvailability)) {
+                    versions.add(release.getComponentVersion());
+                }
+            }
+        }
+        return versions;
+    }
+
+    public boolean updateDBMcAvailability(DBMcAvailabilities dbmca) {
+        try {
+            dbMcAvailabilitiesJpaController.edit(dbmca);
+            LOGGER.log(Level.INFO, dbmca.getReleaseId().getComponentName() + " set as recommanded [" + dbmca.getIsRecommended() + "]");
+            return true;
+        } catch (Exception ex) {
+            Logger.getLogger(MainController.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+    }
+
+    public ArrayList<DBMcAvailabilities> getmcPackageVersions(String packageName, String mcVersion, String packageAvailability) {
+        ArrayList<DBMcAvailabilities> versions = new ArrayList<>();
+        List<DBMcReleases> releases = dbMcReleasesJpaController.findDBMcReleasesByName(packageName);
+        for (DBMcReleases dbmcr : releases) {
+            if (!dbmcr.getReleaseType().equalsIgnoreCase("cancel")) {
+                ArrayList<DBMcAvailabilities> availabilities = new ArrayList(dbmcr.getDBMcAvailabilitiesCollection());
+                for (DBMcAvailabilities dbmca : availabilities) {
+                    if (dbmca.getAvailability().equalsIgnoreCase(packageAvailability) && dbmca.getMcVersion().equalsIgnoreCase(mcVersion)) {
+                        versions.add(dbmca);
+                    }
+                }
+            }
+        }
+        System.out.println(packageName + ": " + Arrays.asList().toArray().toString());
+        return versions;
+    }
+
+    public DBMcReleases getRecommendedMcRelease(String packagename, String mcVersion) {
+        List<DBMcAvailabilities> availabilities = dbMcAvailabilitiesJpaController.findDBMcAvailabilitiesEntities();
+        for (DBMcAvailabilities dbmca : availabilities) {
+            boolean recommended = false;
+            try {
+                recommended = dbmca.getIsRecommended();
+            } catch (Exception exp) {
+                recommended = false;
+            }
+            if ((dbmca.getReleaseId().getComponentName().equalsIgnoreCase(packagename))
+                    && (dbmca.getMcVersion().equalsIgnoreCase(mcVersion))
+                    && recommended) {
+                return dbmca.getReleaseId();
+            }
+        }
+        return null;
+    }
+
+    public DBMcAvailabilities getRecommendedVersion(DBMcAvailabilities dbmca) {
+        String packageName = dbmca.getReleaseId().getComponentName();
+        List<DBMcReleases> releases = dbMcReleasesJpaController.findDBMcReleasesByName(packageName);
+        for (DBMcReleases dbmcr : releases) {
+            if (!dbmcr.getReleaseType().equalsIgnoreCase("cancel")) {
+                ArrayList<DBMcAvailabilities> availabilities = new ArrayList(dbmcr.getDBMcAvailabilitiesCollection());
+                for (DBMcAvailabilities dbmcav : availabilities) {
+                    if ((dbmcav.getAvailability().equalsIgnoreCase(dbmca.getAvailability())
+                            && (dbmcav.getIsRecommended() != null)
+                            && dbmcav.getIsRecommended())
+                            && dbmca.getMcVersion().equalsIgnoreCase(dbmcav.getMcVersion())) {
+                        return dbmcav;
+                    }
+                }
+            }
+
+        }
+        return null;
+    }
+
+    public boolean hideRecommendedVersion(String packageName, String packageAvailability, String mcVersion) {
+        List<DBMcReleases> releases = MainController.getInstance().getDBMcReleasesByPackageName(packageName);
+        for (DBMcReleases dbmcr : releases) {
+            for (DBMcAvailabilities dbmca : dbmcr.getDBMcAvailabilitiesCollection()) {
+                if (dbmca.getMcVersion().equalsIgnoreCase(mcVersion) && dbmca.getAvailability().equalsIgnoreCase(packageAvailability)) {
+                    dbmca.setIsRecommended(false);
+                    try {
+                        dbMcAvailabilitiesJpaController.edit(dbmca);
+                    } catch (Exception ex) {
+                        Logger.getLogger(MainController.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public DBMcAvailabilities getLatestVersion(DBMcAvailabilities dbmca) {
+
+        // Get all availabilities from DB
+        List<DBMcAvailabilities> availabilities = dbMcAvailabilitiesJpaController.findDBMcAvailabilitiesEntities();
+
+        // Add to availabilitiesMap only the ones which match the mcversion, package name and availability
+        Map<String, DBMcAvailabilities> availabilitiesMap = new HashMap<String, DBMcAvailabilities>();
+        for (DBMcAvailabilities dbmcav : availabilities) {
+            if ((dbmcav.getReleaseId().getComponentName().equalsIgnoreCase(dbmca.getReleaseId().getComponentName()))
+                    && (dbmcav.getMcVersion().equalsIgnoreCase(dbmca.getMcVersion()))
+                    && (dbmcav.getAvailability().equalsIgnoreCase(dbmca.getAvailability()))) {
+                availabilitiesMap.put(dbmcav.getReleaseId().getComponentVersion(), dbmcav);
+            }
+        }
+
+        // Get latest version
+        for (String key : availabilitiesMap.keySet()) {
+            DefaultArtifactVersion keyV = new DefaultArtifactVersion(key.split("-")[0]);
+            DefaultArtifactVersion resultV = new DefaultArtifactVersion(dbmca.getReleaseId().getComponentVersion().split("-")[0]);
+            if (keyV.compareTo(resultV) > 0) {
+                dbmca = availabilitiesMap.get(key);
+            }
+        }
+
+        return dbmca;
+    }
+}

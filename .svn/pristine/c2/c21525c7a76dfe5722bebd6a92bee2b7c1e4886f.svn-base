@@ -1,0 +1,64 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.client;
+
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.PackingStatus;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
+import com.google.gwt.user.client.rpc.AsyncCallback;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
+/**
+ *
+ * @author ro100051
+ */
+public interface GWTMCRepositoryManagerServiceAsync {
+
+    public void getPackageList(Filter filter, AsyncCallback<ArrayList<McPackage>> getPackageListCallback);
+    public void generateRepository(ArrayList<McPackage> packages, AsyncCallback<String> generateRepositoryCallback);
+
+    public void getMcVersions(AsyncCallback<List<String>> getMcVersionsCallback);
+
+//    public void getAvailabilities(Filter filter, AsyncCallback<ArrayList<String>> getAvailabilitiesCallback);
+//
+//    public void getMcComponents(Filter filter, AsyncCallback<ArrayList<String>> asyncCallback);
+//    
+//    public void getCustomers(Filter filter, AsyncCallback<ArrayList<String>> getCustomersCallback);
+
+    public void getPackingStatus(AsyncCallback<PackingStatus> getPackingStatusCallback);
+
+    
+
+    public void initiateParser(Filter filter, AsyncCallback<java.lang.Boolean> asyncCallback);
+
+    public void getMCBaselineAttributes(AsyncCallback<MCBaselineAttributes> asyncCallback);
+
+    public void solveDependencies(HashSet<McPackage> mcPackages, AsyncCallback<HashSet<McPackage>> asyncCallback);
+
+    public void authenticate(String password, AsyncCallback<java.lang.Boolean> asyncCallback);
+
+    public void isAuthenticated(AsyncCallback<java.lang.Boolean> asyncCallback);
+
+    public void getPackageListForReleaseManagement(AsyncCallback<ArrayList<RecommendedMcPackage>> asyncCallback);
+
+    public void updateRecommendedVersion(RecommendedMcPackage mcPackage, AsyncCallback<RecommendedMcPackage> asyncCallback);
+
+    public void removeFromTable(RecommendedMcPackage mcPackage, AsyncCallback<RecommendedMcPackage> asyncCallback);
+
+    public void generateRSS(HashSet<RecommendedMcPackage> mcPackages, AsyncCallback<String> asyncCallback);
+
+    public void getSourceXLS(AsyncCallback<String> asyncCallback);
+
+    public void getSourceDB(AsyncCallback<String> asyncCallback);
+
+
+   
+    
+}

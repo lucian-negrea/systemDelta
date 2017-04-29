@@ -35,7 +35,14 @@ import javax.xml.bind.annotation.XmlTransient;
     @NamedQuery(name = "DBMcAvailabilities.findByMcVersion", query = "SELECT d FROM DBMcAvailabilities d WHERE d.mcVersion = :mcVersion"),
     @NamedQuery(name = "DBMcAvailabilities.findByAvailability", query = "SELECT d FROM DBMcAvailabilities d WHERE d.availability = :availability")})
 public class DBMcAvailabilities implements Serializable {
-
+    
+    @Column(name = "customer")
+    private String customer;
+    @Column(name = "is_recommended")
+    private Boolean isRecommended;
+    @Column(name = "notes")
+    private String notes;
+    
     private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,7 +54,9 @@ public class DBMcAvailabilities implements Serializable {
     private String mcVersion;
     @Basic(optional = false)
     @Column(name = "availability")
-    private String availability;
+    private String availability;    
+    @Column(name = "risk")
+    private String risk;
     @OneToMany(mappedBy = "availabilityId")
     private Collection<DBMcDependencies> dBMcDependenciesCollection;
     @OneToMany(mappedBy = "availabilityId")
@@ -63,10 +72,59 @@ public class DBMcAvailabilities implements Serializable {
         this.availabilityId = availabilityId;
     }
 
-    public DBMcAvailabilities(Integer availabilityId, String mcVersion, String availability) {
+    public DBMcAvailabilities(Integer availabilityId, String mcVersion, String availability, String risk) {
         this.availabilityId = availabilityId;
         this.mcVersion = mcVersion;
         this.availability = availability;
+        this.risk = risk;
+    }
+
+    public String getRisk() {
+        return risk;
+    }
+
+    public void setRisk(String risk) {
+        this.risk = risk;
+    }
+
+    public String getCustomer() {
+        return customer;
+    }
+
+    public void setCustomer(String customer) {
+        this.customer = customer;
+    }
+
+    public Boolean getIsRecommended() {
+        return isRecommended;
+    }
+
+    public void setIsRecommended(Boolean isRecommended) {
+        this.isRecommended = isRecommended;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public Collection<DBMcDependencies> getdBMcDependenciesCollection() {
+        return dBMcDependenciesCollection;
+    }
+
+    public void setdBMcDependenciesCollection(Collection<DBMcDependencies> dBMcDependenciesCollection) {
+        this.dBMcDependenciesCollection = dBMcDependenciesCollection;
+    }
+
+    public Collection<DBMcCustomers> getdBMcCustomersCollection() {
+        return dBMcCustomersCollection;
+    }
+
+    public void setdBMcCustomersCollection(Collection<DBMcCustomers> dBMcCustomersCollection) {
+        this.dBMcCustomersCollection = dBMcCustomersCollection;
     }
 
     public Integer getAvailabilityId() {

@@ -1,0 +1,203 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.utils;
+
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
+import com.google.gwt.resources.css.ast.CollapsedNode;
+import com.sun.javafx.scene.control.skin.VirtualFlow;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.validator.routines.UrlValidator;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Hyperlink;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFHyperlink;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+/**
+ *
+ * @author ro100051
+ */
+public class GenerateRSS {
+
+    HashSet<RecommendedMcPackage> mcPackages;
+    List<RecommendedMcPackage> sortedMcPackages;
+    String mcVersion;
+    String rssTemplateFileName = "MC-template-ReleaseStatus.xlsx";
+
+    public GenerateRSS(HashSet<RecommendedMcPackage> mcPackages) {
+        this.mcPackages = mcPackages;
+        sortedMcPackages = new ArrayList<>(mcPackages);
+        Collections.sort(sortedMcPackages, (RecommendedMcPackage t, RecommendedMcPackage t1) -> t.getPackageName().compareTo(t1.getPackageName()));
+        mcVersion = new ArrayList<RecommendedMcPackage>(mcPackages).get(0).getMcVersion();
+    }
+
+    public String getRSS() {
+        FileInputStream file = null;
+        String rssFileName = rssTemplateFileName.replaceAll("template", mcVersion);
+        try {
+            file = new FileInputStream(new File(Configuration.getInstance().getRssTemplatePath() + rssTemplateFileName));
+            XSSFWorkbook workbook = new XSSFWorkbook(file);
+            workbook.setSheetName(workbook.getSheetIndex("MC X.X.X"), "MC " + mcVersion);
+            XSSFSheet sheet = workbook.getSheet("MC " + mcVersion);
+            CreationHelper createHelper = workbook.getCreationHelper();
+
+            Cell cell = null;
+
+            // Update the sheet title
+            cell = sheet.getRow(0).getCell(0);
+            cell.setCellValue(cell.getStringCellValue().replaceAll("template", mcVersion));
+
+            XSSFCellStyle cellStyle = workbook.createCellStyle();
+            cellStyle.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+            cellStyle.setBorderTop(XSSFCellStyle.BORDER_THIN);
+            cellStyle.setBorderRight(XSSFCellStyle.BORDER_THIN);
+            cellStyle.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+
+            XSSFCellStyle hlinkstyle = workbook.createCellStyle();
+            XSSFFont hlinkfont = workbook.createFont();
+            hlinkfont.setUnderline(XSSFFont.U_SINGLE);
+            hlinkfont.setColor(HSSFColor.BLUE.index);
+            hlinkstyle.setFont(hlinkfont);
+            hlinkstyle.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+            hlinkstyle.setBorderTop(XSSFCellStyle.BORDER_THIN);
+            hlinkstyle.setBorderRight(XSSFCellStyle.BORDER_THIN);
+            hlinkstyle.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+
+            XSSFCellStyle dateCellStyle = workbook.createCellStyle();
+            dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MMMM-yyyy"));
+            dateCellStyle.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+            dateCellStyle.setBorderTop(XSSFCellStyle.BORDER_THIN);
+            dateCellStyle.setBorderRight(XSSFCellStyle.BORDER_THIN);
+            dateCellStyle.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+
+            // Populate the table
+            int rowCount = 1;
+            for (RecommendedMcPackage rmcp : sortedMcPackages) {
+                if (rmcp.getRecommendedVersion() != null && rmcp.isShowInTable()) {
+                    Row row = sheet.createRow(rowCount + 1);
+                    rowCount++;
+
+                    cell = row.createCell(0);
+                    cell.setCellValue(rmcp.getTier().replaceAll("Anritsu/MasterClaw/", ""));
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(1);
+                    cell.setCellValue(rmcp.getGroup());
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(2);
+                    cell.setCellValue(rmcp.getPackageName());
+
+                    UrlValidator defaultValidator = new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS);
+                    
+
+                    if (rmcp.getRecommendedVersion().getReleaseNote() != null && defaultValidator.isValid(rmcp.getRecommendedVersion().getReleaseNote())) {
+                        XSSFHyperlink releaseNotelink = (XSSFHyperlink) createHelper.createHyperlink(Hyperlink.LINK_URL);
+                        releaseNotelink.setAddress(rmcp.getRecommendedVersion().getReleaseNote());
+                        //System.out.println("Inside(if) RN: " + rmcp.getRecommendedVersion().getReleaseNote() + " Valid: " + defaultValidator.isValid(rmcp.getRecommendedVersion().getReleaseNote()));
+
+                        cell.setHyperlink(releaseNotelink);
+                    }
+                    cell.setCellStyle(hlinkstyle);
+
+                    cell = row.createCell(3);
+                    cell.setCellValue(rmcp.getRecommendedVersion().getPackageVersion());
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(4);
+                    cell.setCellValue(rmcp.getAvailability());
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(5);
+                    String customers = Arrays.asList(rmcp.getRecommendedVersion().getCustomerList().toArray()).toString();
+                    if (customers.equalsIgnoreCase("[All]")) {
+                        customers = "";
+                    }
+                    cell.setCellValue(customers);
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(6);
+                    cell.setCellValue(rmcp.getRecommendedVersion().getRisk());
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(7);
+                    cell.setCellValue(rmcp.getPackageName());
+                    XSSFHyperlink link = (XSSFHyperlink) createHelper.createHyperlink(Hyperlink.LINK_URL);
+                    link.setAddress(rmcp.getRecommendedVersion().getDownloadLinks().iterator().next());
+                    cell.setHyperlink((XSSFHyperlink) link);
+                    cell.setCellStyle(hlinkstyle);
+
+                    cell = row.createCell(8);
+                    cell.setCellValue((rmcp.getRecommendedVersion() != null && rmcp.getRecommendedVersion().isLessRecommended())? "#" : "");
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(9);
+                    cell.setCellValue(rmcp.getRecommendedVersion().getNotes());
+                    cell.setCellStyle(cellStyle);
+
+                    StringBuilder newFeatures = new StringBuilder();
+                    for (MCPackageActivities mcpa : rmcp.getRecommendedVersion().getActivities()) {
+                        if (!mcpa.getActivityType().equalsIgnoreCase("epr")) {
+                            newFeatures.append(mcpa.getActivityType() + " " + mcpa.getActivityId() + "; ");
+                        }
+                    }
+                    cell = row.createCell(10);
+                    cell.setCellValue(newFeatures.toString());
+                    cell.setCellStyle(cellStyle);
+
+                    cell = row.createCell(11);
+                    cell.setCellValue(rmcp.getRecommendedVersion().getReleaseDate());
+                    cell.setCellStyle(dateCellStyle);
+                }
+                sheet.autoSizeColumn(0);
+                sheet.autoSizeColumn(1);
+                sheet.autoSizeColumn(2);
+                sheet.autoSizeColumn(3);
+                sheet.autoSizeColumn(4);
+                sheet.autoSizeColumn(6);
+                sheet.autoSizeColumn(7);
+                sheet.autoSizeColumn(8);
+                sheet.autoSizeColumn(11);
+
+            }
+
+            FileOutputStream outFile = new FileOutputStream(new File(Configuration.getInstance().getRssTemplatePath() + rssFileName));
+            workbook.write(outFile);
+            outFile.close();
+            return Configuration.getInstance().getRssTemplatePath() + rssFileName;
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(GenerateRSS.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(GenerateRSS.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                file.close();
+            } catch (IOException ex) {
+                Logger.getLogger(GenerateRSS.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return "";
+    }
+}

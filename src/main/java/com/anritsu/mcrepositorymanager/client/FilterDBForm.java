@@ -8,39 +8,57 @@ package com.anritsu.mcrepositorymanager.client;
 import static com.anritsu.mcrepositorymanager.client.FilterRSSForm.getService;
 import com.anritsu.mcrepositorymanager.shared.Filter;
 import com.anritsu.mcrepositorymanager.shared.MCBaselineAttributes;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
 import com.anritsu.mcrepositorymanager.shared.PackingStatus;
 import com.google.gwt.cell.client.FieldUpdater;
-import com.google.gwt.cell.client.SafeHtmlCell;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.cellview.client.Column;
+import com.google.gwt.user.cellview.client.ColumnSortEvent.ListHandler;
 import com.google.gwt.user.cellview.client.RowStyles;
 import com.google.gwt.user.cellview.client.TextColumn;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
+import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.view.client.ListDataProvider;
+import java.text.Format;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.gwtbootstrap3.client.shared.event.ModalHideEvent;
 import org.gwtbootstrap3.client.shared.event.ModalHideHandler;
 import org.gwtbootstrap3.client.ui.Button;
 import org.gwtbootstrap3.client.ui.Modal;
+import org.gwtbootstrap3.client.ui.ModalBody;
+import org.gwtbootstrap3.client.ui.PageHeader;
 import org.gwtbootstrap3.client.ui.ProgressBar;
 import org.gwtbootstrap3.client.ui.TextArea;
+import org.gwtbootstrap3.client.ui.constants.ButtonType;
 import org.gwtbootstrap3.client.ui.gwt.ButtonCell;
 import org.gwtbootstrap3.client.ui.gwt.CellTable;
+import org.gwtbootstrap3.extras.notify.client.constants.NotifyType;
 import org.gwtbootstrap3.extras.notify.client.ui.Notify;
+import org.gwtbootstrap3.extras.notify.client.ui.NotifySettings;
 import org.gwtbootstrap3.extras.select.client.ui.Option;
 import org.gwtbootstrap3.extras.select.client.ui.Select;
 
@@ -51,9 +69,6 @@ import org.gwtbootstrap3.extras.select.client.ui.Select;
 public class FilterDBForm extends Composite {
 
     @UiField
-    Button changeMCVersion;
-
-    @UiField
     Select availabilities;
 
     @UiField
@@ -61,6 +76,18 @@ public class FilterDBForm extends Composite {
 
     @UiField
     Select packagesName;
+
+    @UiField
+    Select activitiesECR;
+
+    @UiField
+    Select activitiesEPR;
+
+    @UiField
+    Select recommended;
+
+    @UiField
+    Select localDependencies;
 
     @UiField
     TextArea q7admOutput;
@@ -89,10 +116,42 @@ public class FilterDBForm extends Composite {
     @UiField
     ProgressBar totalProgressBar;
 
-    private ListDataProvider<McPackage> dataProvider;
+    @UiField
+    HorizontalPanel hPanelLoading;
+
+    @UiField
+    Modal downloadLinkModal;
+
+    @UiField
+    ModalBody downloadLinkModalBody;
+
+    @UiField
+    Button closeDownloadLinkModal;
+
+    @UiField
+    Button returnToBaselineSelection;
+
+    @UiField
+    PageHeader pageHeader;
+
+    @UiField
+    Button repositoryDownloadLink;
+
+    @UiField
+    Modal serviceDescriptionModal;
+
+    @UiField
+    HTML serviceDescriptionHtml;
+
+    @UiField
+    Button serviceDescription;
+
+    private ArrayList<McPackage> packageList;
     private Filter f = new Filter();
     private String mcVersion;
     private Timer t;
+
+    private ListDataProvider<McPackage> dataProvider = new ListDataProvider<>();
 
     private static FilterDBFormUiBinder uiBinder = GWT.create(FilterDBFormUiBinder.class);
 
@@ -102,23 +161,30 @@ public class FilterDBForm extends Composite {
     public FilterDBForm(String mcVersion) {
         this.mcVersion = mcVersion;
         initWidget(uiBinder.createAndBindUi(this));
+        packageListTable.setVisible(false);
+        hPanelLoading.setVisible(false);
+        pageHeader.setText("MasterClaw " + mcVersion + " Repository Generator");
+
+        dataProvider.addDataDisplay(packageListTable);
 
         f.setMcVersion(mcVersion);
-
         // Initiate PackageInfoParser with selected MC version
         getService().initiateParser(f, initiateParserCallback);
 
-        // Get mcBaselineAttributes
-        getService().getMCBaselineAttributes(getMCBaselinesAttributesCallback);
-
-        changeMCVersion.setWidth("25%");
-        changeMCVersion.setText("MasterClaw " + mcVersion);
         filter.setEnabled(true);
         downloadRepositoryArchive.setVisible(false);
+        repositoryDownloadLink.setVisible(false);
         q7admOutput.setHeight("200px");
-        q7admOutput.setPlaceholder("Please paste q7adm output");
+        q7admOutput.setPlaceholder("Please paste 'yum list' output");
 
-        changeMCVersion.addClickHandler(new ClickHandler() {
+        serviceDescription.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                serviceDescriptionModal.show();
+            }
+        });
+
+        returnToBaselineSelection.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 RootPanel.get().clear();
@@ -128,7 +194,7 @@ public class FilterDBForm extends Composite {
         });
 
         //Building the table
-        buildPackageListTable();
+        buildPackageListTable(packageListTable);
 
         cancelPackageGeneration.addClickHandler(new ClickHandler() {
             @Override
@@ -148,12 +214,46 @@ public class FilterDBForm extends Composite {
         filter.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
+                hPanelLoading.setVisible(true);
+                //generateRepository.setEnabled(false);
                 downloadRepositoryArchive.setVisible(false);
                 downloadRepositoryArchive.setActive(false);
+
+                repositoryDownloadLink.setVisible(false);
+                repositoryDownloadLink.setActive(false);
+                packageListTable.setVisible(false);
+                f.setRecommended((recommended.getSelectedValue().equalsIgnoreCase("recommended")) || (recommended.getSelectedValue().equalsIgnoreCase("latest validated")));
                 f.setCustomer(customers.getSelectedValue());
                 f.setAvailability(availabilities.getAllSelectedValues());
                 f.setQ7admOutput(q7admOutput.getText());
                 f.setMcComponent(packagesName.getAllSelectedValues());
+                f.setRecommendedFilter(recommended.getSelectedValue());
+                f.setLocalDependencies(localDependencies.getSelectedValue().equalsIgnoreCase("yes"));
+
+                // set activities filter
+                List<MCPackageActivities> activitiesList = new ArrayList<>();
+
+                List<String> activitiesECRValues = activitiesECR.getAllSelectedValues();
+                for (String string : activitiesECRValues) {
+                    String[] activitySplit = string.split(":::");
+                    MCPackageActivities mcpa = new MCPackageActivities();
+                    mcpa.setActivityType(activitySplit[0]);
+                    mcpa.setActivityId(activitySplit[1]);
+                    mcpa.setActivityText(activitySplit[2]);
+                    activitiesList.add(mcpa);
+                }
+
+                List<String> activitiesEPRValues = activitiesEPR.getAllSelectedValues();
+                for (String string : activitiesEPRValues) {
+                    String[] activitySplit = string.split(":::");
+                    MCPackageActivities mcpa = new MCPackageActivities();
+                    mcpa.setActivityType(activitySplit[0]);
+                    mcpa.setActivityId(activitySplit[1]);
+                    mcpa.setActivityText(activitySplit[2]);
+                    activitiesList.add(mcpa);
+                }
+                f.setActivities(activitiesList);
+
                 getService().getPackageList(f, getPackageListCallback);
             }
         });
@@ -163,10 +263,15 @@ public class FilterDBForm extends Composite {
             public void onClick(ClickEvent event) {
                 downloadRepositoryArchive.setVisible(false);
                 downloadRepositoryArchive.setEnabled(false);
+
+                repositoryDownloadLink.setVisible(false);
+                repositoryDownloadLink.setEnabled(false);
                 int downloadCount = 0;
                 ArrayList<McPackage> packageList = new ArrayList<>();
                 for (McPackage p : dataProvider.getList()) {
-                    packageList.add(p);
+                    if (p.getDownloadLinks() != null && !p.getDownloadLinks().isEmpty()) {
+                        packageList.add(p);
+                    }
                     if (p.isAddToRepository()) {
                         downloadCount++;
                     }
@@ -184,7 +289,38 @@ public class FilterDBForm extends Composite {
                     }
                 };
                 t.scheduleRepeating(1500);
+            }
+        });
 
+        recommended.addChangeHandler(new ChangeHandler() {
+            @Override
+            public void onChange(ChangeEvent event) {
+                switch (recommended.getSelectedValue()) {
+                    case "recommended":
+                        availabilities.deselectAll();
+                        availabilities.setEnabled(false);
+                        break;
+//                    case "latest validated":
+//                        availabilities.deselectAll();
+//                        availabilities.selectValues("FCA", "GCA");
+//                        break;
+                    case "latest":
+                        availabilities.deselectAll();
+                        availabilities.setEnabled(true);
+                        break;
+                }
+            }
+        });
+
+        customers.addChangeHandler(new ChangeHandler() {
+            @Override
+            public void onChange(ChangeEvent event) {
+                if (!customers.getSelectedValue().equals("All")) {
+                    availabilities.selectValues("SCR");
+                } else if (customers.getSelectedValue().equals("All")) {
+                    availabilities.deselectAll();
+
+                }
             }
         });
 
@@ -192,9 +328,23 @@ public class FilterDBForm extends Composite {
             @Override
             public void onClick(ClickEvent event) {
                 Window.open("/DownloadRepoArchive?archiveName=" + downloadRepositoryArchive.getTitle(), "_parent", "location=no");
-
             }
         });
+
+        repositoryDownloadLink.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                PopupPanel popupContext = new PopupPanel(true);
+                popupContext.setPopupPosition(event.getNativeEvent().getClientX() + Window.getScrollLeft(), event.getNativeEvent().getClientY() + Window.getScrollTop());
+                String link = Window.Location.getProtocol() + "//" + Window.Location.getHost() + "/DownloadRepoArchive?archiveName=" + downloadRepositoryArchive.getTitle();
+                Anchor anchor = new Anchor(link, link);
+                popupContext.add(anchor);
+                popupContext.show();
+
+            }
+
+        });
+
     }
 
     // Initiate parser callback
@@ -211,7 +361,7 @@ public class FilterDBForm extends Composite {
             }
         }
     };
-    
+
     // Get MC baseline attributes
     AsyncCallback<MCBaselineAttributes> getMCBaselinesAttributesCallback = new AsyncCallback<MCBaselineAttributes>() {
         @Override
@@ -222,21 +372,40 @@ public class FilterDBForm extends Composite {
         @Override
         public void onSuccess(MCBaselineAttributes result) {
 
-            // Populate availabilities
-            availabilities.clear();
-            for (String s : result.getAvailabilities()) {
+            // Populate recommended
+            recommended.clear();
+            ArrayList<String> recommendedList = new ArrayList<>();
+            recommendedList.add("recommended");
+            //recommendedList.add("latest validated");
+            recommendedList.add("latest");
+            for (String s : recommendedList) {
                 Option o = new Option();
                 o.setValue(s);
                 o.setName(s);
                 o.setText(s);
+                recommended.add(o);
+            }
+            recommended.setEnabled(true);
+            recommended.setSelectedTextFormat("recommended");
+            recommended.refresh();
+
+            // Populate availabilities
+            availabilities.clear();
+            TreeSet<String> sortedAvailabilities = new TreeSet<>(result.getAvailabilities());
+            for (String s : result.getAvailabilities()) {
+                Option o = new Option();
+                o.setName(s);
+                o.setText(s);
                 availabilities.add(o);
             }
+            //availabilities.selectValues("FCA", "GCA");
             availabilities.refresh();
             availabilities.setEnabled(true);
 
             // Populate customers
             customers.clear();
-            for (String s : result.getCustomers()) {
+            TreeSet<String> sortedCustomers = new TreeSet<String>(result.getCustomers());
+            for (String s : sortedCustomers) {
                 Option o = new Option();
                 o.setValue(s);
                 o.setName(s);
@@ -248,7 +417,8 @@ public class FilterDBForm extends Composite {
 
             // Populate package name
             packagesName.clear();
-            for (String s : result.getPackageNames()) {
+            TreeSet<String> sortedPackageNames = new TreeSet<String>(result.getPackageNames());
+            for (String s : sortedPackageNames) {
                 Option o = new Option();
                 o.setValue(s);
                 o.setText(s);
@@ -257,6 +427,42 @@ public class FilterDBForm extends Composite {
             }
             packagesName.refresh();
             packagesName.setEnabled(true);
+
+            // populate activity section
+            activitiesECR.clear();
+            activitiesEPR.clear();
+            for (MCPackageActivities mcpa : result.getPackageActivities()) {
+                Option o = new Option();
+                String value = mcpa.getActivityType() + ":::" + mcpa.getActivityId() + ":::" + mcpa.getActivityText();
+                o.setValue(value);
+                o.setText(mcpa.getActivityType() + " " + mcpa.getActivityId());
+                o.setSubtext(mcpa.getActivityText());
+                if (mcpa.getActivityType().equalsIgnoreCase("epr")) {
+                    activitiesEPR.add(o);
+                } else {
+                    activitiesECR.add(o);
+                }
+            }
+            activitiesECR.refresh();
+            activitiesECR.setEnabled(true);
+            activitiesEPR.refresh();
+            activitiesEPR.setEnabled(true);
+
+            // populate localDependencies
+            localDependencies.clear();
+            Option o1 = new Option();
+            o1.setValue("yes");
+            o1.setText("Local dependencies");
+            o1.setName("Local dependencies");
+
+            Option o2 = new Option();
+            o2.setValue("no");
+            o2.setText("Remote dependencies");
+            o2.setName("Remote dependencies");
+
+            localDependencies.add(o1);
+            localDependencies.add(o2);
+            localDependencies.refresh();
         }
     };
 
@@ -269,13 +475,15 @@ public class FilterDBForm extends Composite {
 
         @Override
         public void onSuccess(ArrayList<McPackage> result) {
+            hPanelLoading.setVisible(false);
+            packageListTable.setVisible(true);
             Notify.notify(result.size() + " packages retrived!");
-
-            populatePackageListTable(result);
+            packageList = result;
+            populatePackageListTable(new HashSet(packageList));
             generateRepository.setEnabled(true);
         }
     };
-    
+
     AsyncCallback<PackingStatus> getPackingStatusCallback = new AsyncCallback<PackingStatus>() {
         @Override
         public void onFailure(Throwable caught) {
@@ -310,54 +518,116 @@ public class FilterDBForm extends Composite {
         }
     };
 
-    public void populatePackageListTable(ArrayList<McPackage> packageList) {
-        dataProvider = new ListDataProvider<>();
-        dataProvider.addDataDisplay(packageListTable);
+    public void populatePackageListTable(HashSet<McPackage> packageList) {
+        ArrayList<McPackage> sortedPackageList = new ArrayList(packageList);
+        Collections.sort(sortedPackageList, new Comparator<McPackage>() {
+            @Override
+            public int compare(McPackage t1, McPackage t2) {
+                return t1.getName().compareTo(t2.getName());
+            }
+        });
+        dataProvider.getList().clear();
         List<McPackage> list = dataProvider.getList();
 
         for (McPackage p : packageList) {
-            if (!(f.getQ7admOutput().equals(""))) {
-                p.setAddToRepository(p.isMcPackageSuitableForDownload());
-            }
+//            if (!(f.getQ7admOutput().equals("")) && !p.isDependency()) {
+//                p.setAddToRepository(p.isMcPackageSuitableForDownload());            
+//            }
             list.add(p);
 
         }
 
-        // Changing row style when packageversion is greater than q7adm output version
+        // Changing row style when packageversion is greater than q7adm output version        
         packageListTable.setRowStyles(new RowStyles<McPackage>() {
             @Override
             public String getStyleNames(McPackage p, int rowIndex) {
-                return (p.isMcPackageSuitableForDownload()) ? "info" : "";
+                if (p.getDownloadLinks() == null || p.getDownloadLinks().isEmpty()) {
+                    NotifySettings settings = NotifySettings.newSettings();
+                    settings.setType(NotifyType.DANGER);
+                    settings.setDelay(0);
+                    Notify.notify("Please note that not all the dependencies were solved.", settings);
+                    //generateRepository.setEnabled(false);
+                    return "danger";
+                }
+                if (p.isMcPackageSuitableForDownload()) {
+                    return "info";
+                }
+                if (p.isDependency()) {
+                    return "warning";
+                }
+                return "";
             }
         });
     }
 
-    public void buildPackageListTable() {
-        packageListTable.setPageSize(200);
-        TextColumn<McPackage> packageNameColumn = new TextColumn<McPackage>() {
+    public void buildPackageListTable(final CellTable table) {
+
+        table.setPageSize(200);
+
+        // Attach column sort handler
+        ListHandler<McPackage> sortHandler = new ListHandler<McPackage>(dataProvider.getList());
+        table.addColumnSortHandler(sortHandler);
+
+        Column<McPackage, String> packageNameColumn = new Column<McPackage, String>(new ButtonCell(ButtonType.LINK)) {
             @Override
-            public String getValue(McPackage pack) {
-                return pack.getName();
+            public String getValue(McPackage object) {
+                return object.getName();
+            }
+        };
+        packageNameColumn.setFieldUpdater(new FieldUpdater<McPackage, String>() {
+            @Override
+            public void update(int index, McPackage object, String value) {
+                Set<String> dependencies = new HashSet();
+                for (McPackage p : object.getDependencies()) {
+                    dependencies.add(p.getName() + "-" + p.getPackageVersion());
+                }
+                Set<String> dependencyFor = new HashSet<>();
+                for (McPackage p : object.getDependencyFor()) {
+                    dependencyFor.add(p.getName() + "-" + p.getPackageVersion());
+                }
+                Notify.notify("Dependencies: " + Arrays.toString(dependencies.toArray()) + "\nDependency for: " + Arrays.toString(dependencyFor.toArray()));
+            }
+        });
+        packageNameColumn.setSortable(true);
+        packageNameColumn.setDefaultSortAscending(true);
+        sortHandler.setComparator(packageNameColumn, new Comparator<McPackage>() {
+            @Override
+            public int compare(McPackage t1, McPackage t2) {
+                return t1.getName().compareTo(t2.getName());
+            }
+        });
+
+        Column<McPackage, String> packageVersionColumn = new Column<McPackage, String>(
+                new ButtonCell(ButtonType.LINK)) {
+            @Override
+            public String getValue(McPackage object) {
+                return object.getPackageVersion();
             }
         };
 
-        Column<McPackage, SafeHtml> packageVersionColumn = new Column<McPackage, SafeHtml>(
-                new SafeHtmlCell()) {
+        packageVersionColumn.setFieldUpdater(new FieldUpdater<McPackage, String>() {
             @Override
-            public SafeHtml getValue(McPackage object) {
-                SafeHtmlBuilder sb = new SafeHtmlBuilder();
-                sb.appendHtmlConstant("<a href='" + object.getDownloadLink() + "'>");
-                sb.appendEscaped(object.getPackageVersion());
-                sb.appendHtmlConstant("</a>");
-                return sb.toSafeHtml();
+            public void update(int index, McPackage object, String value) {
+                HTML html = new HTML();
+                SafeHtmlBuilder sHtmlBuilder = new SafeHtmlBuilder();
+
+                for (String stringLink : object.getDownloadLinks()) {
+                    sHtmlBuilder.appendHtmlConstant("<a href='" + stringLink + "'>");
+                    sHtmlBuilder.appendEscaped(stringLink);
+                    sHtmlBuilder.appendHtmlConstant("</a><br />");
+                }
+                html.setHTML(sHtmlBuilder.toSafeHtml());
+                downloadLinkModalBody.clear();
+                downloadLinkModalBody.add(html);
+                downloadLinkModal.show();
 
             }
-        };
+        });
 
-        TextColumn<McPackage> packageQ7admOutputVersionColumn = new TextColumn<McPackage>() {
+        Column<McPackage, String> packageQ7admOutputVersionColumn = new Column<McPackage, String>(new ButtonCell(ButtonType.LINK)) {
             @Override
-            public String getValue(McPackage pack) {
-                return pack.getQ7admOutputVersion();
+            public String getValue(McPackage object) {
+                return object.getQ7admOutputVersion();
             }
         };
 
@@ -368,33 +638,90 @@ public class FilterDBForm extends Composite {
             }
         };
 
-        Column<McPackage, String> selectedForDownloadColumn = new Column<McPackage, String>(new ButtonCell()) {
+        TextColumn<McPackage> packageReleaseDateColumn = new TextColumn<McPackage>() {
+            @Override
+            public String getValue(McPackage pack) {
+                StringBuilder dateFormated = new StringBuilder();
+                if (pack.getReleaseDate() != null) {
+                    String[] releaseDateArray = pack.getReleaseDate().toString().split(" ");
+                    dateFormated.append(releaseDateArray[2] + "-" + releaseDateArray[1] + "-" + releaseDateArray[5]);
+                    return dateFormated.toString();
+                }
+                return "";
+            }
+        };
 
+        Column<McPackage, String> selectedForDownloadColumn = new Column<McPackage, String>(new ButtonCell()) {
             @Override
             public String getValue(McPackage object) {
-                //Notify.notify(object.getName() + " ->" + object.isAddToRepository());
+                ((ButtonCell) this.getCell()).setEnabled(false);
+                if (object.getDownloadLinks().isEmpty()) {
+                    return "Missing from DB";
+                }
+                if (object.isMatchFilter()) {
+                    ((ButtonCell) this.getCell()).setEnabled(true);
+                }
+                if (object.isDependency()) {
+                    ((ButtonCell) this.getCell()).setEnabled(false);
+                }
                 return (object.isAddToRepository()) ? "remove from repository" : "add to repository";
             }
-
         };
 
         selectedForDownloadColumn.setFieldUpdater(new FieldUpdater<McPackage, String>() {
 
             @Override
             public void update(int index, McPackage object, String value) {
+                downloadRepositoryArchive.setVisible(false);
+                downloadRepositoryArchive.setActive(false);
+
+                repositoryDownloadLink.setVisible(false);
+                repositoryDownloadLink.setActive(false);
                 object.setAddToRepository(!object.isAddToRepository());
-                Notify.notify("Package " + object.getName() + " " + value);
-                packageListTable.redraw();
+
+                // Dealing with dependencies
+                HashSet<McPackage> pList = new HashSet<>();
+                for (McPackage p : dataProvider.getList()) {
+                    if (p.isAddToRepository() && p.isMatchFilter()) {
+                        p.setDependencySolved(false);
+                        pList.add(p);
+                    }
+                }
+                getService().solveDependencies(pList, solveDependenciesCallback);
+                Notify.notify("Package " + object.getName() + " " + value + " : " + object.isAddToRepository());
             }
 
         });
 
-        packageListTable.addColumn(packageNameColumn, "Package Name");
-        packageListTable.addColumn(packageQ7admOutputVersionColumn, "Installed version");
-        packageListTable.addColumn(packageVersionColumn, "Package Version");
-        packageListTable.addColumn(packageAvailabilityColumn, "Availability");
-        packageListTable.addColumn(selectedForDownloadColumn, "Add to repository");
+        table.addColumn(packageNameColumn, "Package Name");
+        table.addColumn(packageQ7admOutputVersionColumn, "Installed version");
+        table.addColumn(packageVersionColumn, "Package Version");
+        table.addColumn(packageAvailabilityColumn, "Availability");
+        table.addColumn(packageReleaseDateColumn, "Release Date");
+        table.addColumn(selectedForDownloadColumn, "Add to repository");
     }
+
+    // Repopulate table after removing a package which mathced the filter
+    AsyncCallback<HashSet<McPackage>> solveDependenciesCallback = new AsyncCallback<HashSet<McPackage>>() {
+        @Override
+        public void onFailure(Throwable caught) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void onSuccess(HashSet<McPackage> result) {
+
+            HashSet<McPackage> removed = new HashSet<>();
+            for (McPackage p : dataProvider.getList()) {
+                if (p.isMatchFilter()) {
+                    removed.add(p);
+                }
+            }
+            result.addAll(removed);
+            populatePackageListTable(result);
+
+        }
+    };
 
     // Generate package list repository
     AsyncCallback<String> generateRepositoryCallback = new AsyncCallback<String>() {
@@ -411,6 +738,9 @@ public class FilterDBForm extends Composite {
             downloadRepositoryArchive.setVisible(true);
             downloadRepositoryArchive.setEnabled(true);
             downloadRepositoryArchive.setTitle(result);
+
+            repositoryDownloadLink.setVisible(true);
+            repositoryDownloadLink.setEnabled(true);
         }
     };
 

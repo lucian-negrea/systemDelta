@@ -24,6 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.NoResultException;
 
 /**
  *
@@ -294,7 +295,13 @@ private static final Logger LOGGER = Logger.getLogger(PackageInfoParserFactory.c
         query.setParameter("componentName", name);
         query.setParameter("componentVersion", version);
         LOGGER.log(Level.INFO, "Executing: " + query.toString());
-        return (DBMcReleases) query.getSingleResult();
+        DBMcReleases dbmcr = new DBMcReleases();
+        try{
+            dbmcr = (DBMcReleases) query.getSingleResult();
+            return dbmcr;
+        }catch(NoResultException exp){
+            return dbmcr;
+        }
         
     }
 

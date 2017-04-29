@@ -1,0 +1,199 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.utils;
+
+import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
+import com.anritsu.mcrepositorymanager.shared.McPackage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ *
+ * @author RO100051
+ */
+public class ApplyFilter {
+
+    private Filter filter;
+    private HashMap<String, ArrayList<String>> q7admPackageNameVersion = new HashMap<>();
+
+    public ApplyFilter(Filter filter) {
+
+        this.filter = filter;
+        parseFilter();
+    }
+
+    public ApplyFilter() {
+
+    }
+
+    public Filter getFilter() {
+        return filter;
+    }
+
+    public void setFilter(Filter filter) {
+        this.filter = filter;
+    }
+
+    public boolean isMcPackageMatchRecommendedLatestFilter(McPackage p) {
+        boolean result;
+        if (filter.isRecommended()) {
+            // Check if p is recommended
+            result = p.isRecommended();
+        } else {
+            // Check if p is latest
+            result = p.isLatest();
+        }
+        System.out.println("Package recommended filter: " + result);
+        return result;
+
+    }
+
+    public boolean isMcPackageMatchCustomerFilter(McPackage p) {
+        boolean result = false;
+        if (p.getCustomerList().contains(filter.getCustomer()) || filter.getCustomer().equalsIgnoreCase("all") || filter.getCustomer().equalsIgnoreCase("") || filter.getAvailability().contains("FCA") || filter.getAvailability().contains("GCA")) {
+            result = true;
+            System.out.println("Customer filter: " + result);
+        } else {
+            result = false;
+        }
+        return result;
+    }
+
+    public boolean isMcPackageMatchMcComponentFilter(McPackage p) {
+        boolean result = false;
+        result = (p.getMcVersion().equalsIgnoreCase(filter.getMcVersion()) && (filter.getMcComponent().contains(p.getName()) || filter.getMcComponent().isEmpty()));
+        System.out.println("Package name filter: " + result);
+        return result;
+    }
+
+    public boolean isMcPackageMatchAvailabilityFilter(McPackage p) {
+        boolean result = false;
+        result = ((p.getMcVersion().equalsIgnoreCase(filter.getMcVersion())) && (filter.getAvailability().contains(p.getAvailability()) || filter.getAvailability().isEmpty()));
+        System.out.println("Availabiltiy filter: " + result);
+        return result;
+    }
+
+    public boolean isMcPackageMatchActivityFilter(McPackage p) {
+        boolean result = false;
+
+        if (filter.getActivities().isEmpty()) {
+            System.out.println("Filter activities = 0 -> " + filter.getActivities().size());
+            result = true;
+        } else {
+            ArrayList<MCPackageActivities> mcpActivities = new ArrayList<>(filter.getActivities());
+            for (MCPackageActivities mcpa : p.getActivities()) {
+                if (mcpActivities.contains(mcpa)) {
+                    result = true;
+                    System.out.println(mcpa.getActivityType() + "_" + mcpa.getActivityId() + "_" + mcpa.getActivityText() + " is included in " + Arrays.asList(mcpActivities.toArray()));
+                    break;
+                }
+            }
+        }
+        System.out.println("Activity filter: " + result);
+        return result;
+    }
+
+    public boolean isMcPackageMatchQ7admOutput(McPackage p) {
+        boolean result = false;
+        System.out.println("Filter: " + filter.getQ7admOutput());
+        if (filter.getQ7admOutput().equals("")) {
+            p.setQ7admOutputVersion("");
+            result = true;
+        }
+        //To be implemented!
+        for (Map.Entry<String, ArrayList<String>> entry : q7admPackageNameVersion.entrySet()) {
+            if (entry.getKey().startsWith("protocol-") && entry.getKey().matches(".*-" + p.getName().replace("-Linux64", "").replace("-Linux", "") + "-.*")) {
+                p.setQ7admOutputVersion(getQ7admLastVersion(entry.getValue()));
+                //System.out.println("Name: " + entry.getKey() + " Version: " + Arrays.toString(entry.getValue().toArray()));
+                result = true;
+            } else if (entry.getKey().replace("-Linux64", "").replace("-Linux", "").equals(p.getName())) {
+                p.setQ7admOutputVersion(getQ7admLastVersion(entry.getValue()));
+                //System.out.println("Name: " + entry.getKey() + " Version: " + Arrays.toString(entry.getValue().toArray()));
+                result = true;
+            } else {
+                //System.out.println("Name: " + entry.getKey()  + "NOMATCH: " + p.getName() + " Version: " + Arrays.toString(entry.getValue().toArray()));
+            }
+        }
+        System.out.println("Q7adm filter: " + result);
+        return result;
+    }
+
+    public String getQ7admLastVersion(ArrayList<String> versions) {
+        HashMap<Integer, String> newVersionsMap = new HashMap<>();
+        ArrayList<Integer> newVersionList = new ArrayList<>();
+        for (String s : versions) {
+            Integer newS = Integer.parseInt(s.split("-")[0].replace(".", ""));
+            newVersionsMap.put(newS, s);
+            newVersionList.add(newS);
+        }
+        Collections.sort(newVersionList);
+        System.out.println(Arrays.toString(newVersionList.toArray()));
+        return newVersionsMap.get(newVersionList.get(newVersionList.size() - 1));
+    }
+
+    public void parseFilter() {
+        if (filter.getQ7admOutput().isEmpty()) {
+            return;
+        }
+
+        ArrayList<String> parsedPackageNameList = new ArrayList<>();
+        String lines[] = filter.getQ7admOutput().split("\\r?\\n");
+        String packageVersion = "";
+        String packageName = "";
+        for (String line1 : lines) {
+            System.out.println("Parsing: " + line1);
+            String[] line = line1.trim().replaceAll("^\\s+", "").split(" ");
+            if (line1.contains("installed as") && !line1.isEmpty()) {
+                System.out.println(line1 + " contains 'installed as'!");
+                System.out.println(Arrays.toString(line));
+                // q7adm list output                
+                String packageNameAndVersion[] = line[0].split("-");
+                int arrLength = packageNameAndVersion.length;
+                if (line[0].contains("protocol-") && !(line[0].contains("protocol-servers"))) {
+                    // Protocol package
+                    packageVersion = packageNameAndVersion[arrLength - 2] + "-" + packageNameAndVersion[arrLength - 1];
+                    packageName = line[0].replace("-" + packageVersion, "").replace("-Linux64", "").replace("-Linux", "");
+                } else {
+                    // Normal package
+                    packageVersion = packageNameAndVersion[arrLength - 1];
+                    packageName = line[0].replace("-" + packageVersion, "");
+                }
+
+            } else if (!line1.contains("installed as") && !line1.isEmpty() && line1.matches(".*\\.*\\.*\\.*\\.*")) {
+                //System.out.println(line1 + " matches '.*.*.*.*'");
+                line = line1.trim().replaceAll(" +", " ").split(" ");
+                System.out.println(Arrays.toString(line));
+                // yum list output
+                String packageNameArr[] = line[0].split("\\.");
+                packageName = packageNameArr[0];
+                try {
+                    String packageVersionArr[] = line[1].split("\\-");
+                    packageVersion = packageVersionArr[0];
+                } catch (ArrayIndexOutOfBoundsException exp) {
+                    packageVersion = "";
+                }
+            }
+            if (!packageName.equalsIgnoreCase("") && !packageVersion.equalsIgnoreCase("") && parsedPackageNameList.contains(packageName)) {
+                for (Map.Entry<String, ArrayList<String>> entry : q7admPackageNameVersion.entrySet()) {
+                    if (entry.getKey().equals(packageName)) {
+                        entry.getValue().add(packageVersion);
+                    }
+                }
+            } else if (!packageName.equalsIgnoreCase("") && !packageVersion.equalsIgnoreCase("")) {
+                ArrayList<String> packageVersionArray = new ArrayList<>();
+                packageVersionArray.add(packageVersion);
+                q7admPackageNameVersion.put(packageName, packageVersionArray);
+                parsedPackageNameList.add(packageName);
+            }
+        }
+
+    }
+
+}

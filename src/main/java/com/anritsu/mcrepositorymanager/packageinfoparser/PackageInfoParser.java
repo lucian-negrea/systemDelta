@@ -6,7 +6,10 @@
 package com.anritsu.mcrepositorymanager.packageinfoparser;
 
 import com.anritsu.mcrepositorymanager.shared.Filter;
+import com.anritsu.mcrepositorymanager.shared.MCPackageActivities;
 import com.anritsu.mcrepositorymanager.shared.McPackage;
+import com.anritsu.mcrepositorymanager.shared.RecommendedMcPackage;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 /**
@@ -18,5 +21,8 @@ public interface PackageInfoParser {
     public HashSet<String> getPackageNameList();
     public HashSet<String> getCustomers();
     public HashSet<String> getAvailability();
+    public HashSet<MCPackageActivities> getActivities();
     public String getMCVersion();
+    public HashSet<McPackage> solveDependencies(HashSet<McPackage> mcPackages);
+    public ArrayList<RecommendedMcPackage> getPackageListForReleaseManagement();
 }

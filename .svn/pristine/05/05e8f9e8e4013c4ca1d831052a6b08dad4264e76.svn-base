@@ -1,0 +1,168 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.anritsu.mcrepositorymanager.dbcontroller;
+
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcItemsReleased;
+import com.anritsu.mcrepositorymanager.dbbeans.DBMcReleases;
+import com.anritsu.mcrepositorymanager.dbcontroller.exceptions.NonexistentEntityException;
+import java.io.Serializable;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Query;
+import javax.persistence.EntityNotFoundException;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+
+/**
+ *
+ * @author ro100051
+ */
+public class DBMcItemsReleasedJpaController implements Serializable {
+
+    public DBMcItemsReleasedJpaController(EntityManagerFactory emf) {
+        this.emf = emf;
+    }
+    private EntityManagerFactory emf = null;
+
+    public EntityManager getEntityManager() {
+        return emf.createEntityManager();
+    }
+
+    public void create(DBMcItemsReleased DBMcItemsReleased) {
+        EntityManager em = null;
+        try {
+            em = getEntityManager();
+            em.getTransaction().begin();
+            DBMcReleases releaseId = DBMcItemsReleased.getReleaseId();
+            if (releaseId != null) {
+                releaseId = em.getReference(releaseId.getClass(), releaseId.getReleaseId());
+                DBMcItemsReleased.setReleaseId(releaseId);
+            }
+            em.persist(DBMcItemsReleased);
+            if (releaseId != null) {
+                releaseId.getDBMcItemsReleasedCollection().add(DBMcItemsReleased);
+                releaseId = em.merge(releaseId);
+            }
+            em.getTransaction().commit();
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    public void edit(DBMcItemsReleased DBMcItemsReleased) throws NonexistentEntityException, Exception {
+        EntityManager em = null;
+        try {
+            em = getEntityManager();
+            em.getTransaction().begin();
+            DBMcItemsReleased persistentDBMcItemsReleased = em.find(DBMcItemsReleased.class, DBMcItemsReleased.getItemId());
+            DBMcReleases releaseIdOld = persistentDBMcItemsReleased.getReleaseId();
+            DBMcReleases releaseIdNew = DBMcItemsReleased.getReleaseId();
+            if (releaseIdNew != null) {
+                releaseIdNew = em.getReference(releaseIdNew.getClass(), releaseIdNew.getReleaseId());
+                DBMcItemsReleased.setReleaseId(releaseIdNew);
+            }
+            DBMcItemsReleased = em.merge(DBMcItemsReleased);
+            if (releaseIdOld != null && !releaseIdOld.equals(releaseIdNew)) {
+                releaseIdOld.getDBMcItemsReleasedCollection().remove(DBMcItemsReleased);
+                releaseIdOld = em.merge(releaseIdOld);
+            }
+            if (releaseIdNew != null && !releaseIdNew.equals(releaseIdOld)) {
+                releaseIdNew.getDBMcItemsReleasedCollection().add(DBMcItemsReleased);
+                releaseIdNew = em.merge(releaseIdNew);
+            }
+            em.getTransaction().commit();
+        } catch (Exception ex) {
+            String msg = ex.getLocalizedMessage();
+            if (msg == null || msg.length() == 0) {
+                Integer id = DBMcItemsReleased.getItemId();
+                if (findDBMcItemsReleased(id) == null) {
+                    throw new NonexistentEntityException("The dBMcItemsReleased with id " + id + " no longer exists.");
+                }
+            }
+            throw ex;
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    public void destroy(Integer id) throws NonexistentEntityException {
+        EntityManager em = null;
+        try {
+            em = getEntityManager();
+            em.getTransaction().begin();
+            DBMcItemsReleased DBMcItemsReleased;
+            try {
+                DBMcItemsReleased = em.getReference(DBMcItemsReleased.class, id);
+                DBMcItemsReleased.getItemId();
+            } catch (EntityNotFoundException enfe) {
+                throw new NonexistentEntityException("The DBMcItemsReleased with id " + id + " no longer exists.", enfe);
+            }
+            DBMcReleases releaseId = DBMcItemsReleased.getReleaseId();
+            if (releaseId != null) {
+                releaseId.getDBMcItemsReleasedCollection().remove(DBMcItemsReleased);
+                releaseId = em.merge(releaseId);
+            }
+            em.remove(DBMcItemsReleased);
+            em.getTransaction().commit();
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    public List<DBMcItemsReleased> findDBMcItemsReleasedEntities() {
+        return findDBMcItemsReleasedEntities(true, -1, -1);
+    }
+
+    public List<DBMcItemsReleased> findDBMcItemsReleasedEntities(int maxResults, int firstResult) {
+        return findDBMcItemsReleasedEntities(false, maxResults, firstResult);
+    }
+
+    private List<DBMcItemsReleased> findDBMcItemsReleasedEntities(boolean all, int maxResults, int firstResult) {
+        EntityManager em = getEntityManager();
+        try {
+            CriteriaQuery cq = em.getCriteriaBuilder().createQuery();
+            cq.select(cq.from(DBMcItemsReleased.class));
+            Query q = em.createQuery(cq);
+            if (!all) {
+                q.setMaxResults(maxResults);
+                q.setFirstResult(firstResult);
+            }
+            return q.getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    public DBMcItemsReleased findDBMcItemsReleased(Integer id) {
+        EntityManager em = getEntityManager();
+        try {
+            return em.find(DBMcItemsReleased.class, id);
+        } finally {
+            em.close();
+        }
+    }
+
+    public int getDBMcItemsReleasedCount() {
+        EntityManager em = getEntityManager();
+        try {
+            CriteriaQuery cq = em.getCriteriaBuilder().createQuery();
+            Root<DBMcItemsReleased> rt = cq.from(DBMcItemsReleased.class);
+            cq.select(em.getCriteriaBuilder().count(rt));
+            Query q = em.createQuery(cq);
+            return ((Long) q.getSingleResult()).intValue();
+        } finally {
+            em.close();
+        }
+    }
+    
+}
